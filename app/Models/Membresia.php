@@ -7,27 +7,25 @@ use Illuminate\Database\Eloquent\Model;
 class Membresia extends Model
 {
     protected $table = 'membresias';
+
     protected $primaryKey = 'id_mem';
+
     protected $guarded = [];
 
     public $timestamps = true;
 
-     public function getEstadoMembresiaAttribute()
+    public function pagos()
     {
-        return $this
-            ->where('estado', 'A')
-            ->latest()
-            ->first();
+        return $this->hasMany(Pago::class, 'fkmem', 'id_mem');
     }
 
-    public function pago()
+    public function getActivaAttribute(): bool
     {
-        return $this->hasOne(Pagos::class, 'fkmem', 'id_mem');
+        return $this->estado === 'A';
     }
-    
+
     public function getFechaLimiteAttribute()
     {
         return $this->mem_limit ? \Carbon\Carbon::parse($this->mem_limit)->format('d/m/y') : null;
     }
-
 }

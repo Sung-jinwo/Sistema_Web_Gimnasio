@@ -2,16 +2,18 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 
 class Pago extends Model
 {
     protected $table = 'pagos';
+
     protected $primaryKey = 'id_pag';
+
     protected $guarded = [];
 
     public $timestamps = true;
-
 
     public function alumno()
     {
@@ -30,19 +32,18 @@ class Pago extends Model
 
     public function metodo()
     {
-        return $this->belongsTo(Metodo::class, 'fkmetodo', 'id_metod');
+        return $this->belongsTo(MetodoPago::class, 'fkmetodo', 'id_metod');
     }
 
     public function membresia()
     {
-        return $this->belongsTo(Membresias::class, 'fkmem', 'id_mem');
+        return $this->belongsTo(Membresia::class, 'fkmem', 'id_mem');
     }
 
-    public function pagodetalle()
+    public function detalles()
     {
-        return $this->hasMany(PagoDetalle::class, 'fkpago');
+        return $this->hasMany(PagoDetalle::class, 'fkpago', 'id_pag');
     }
-
 
     public function getPagInicioFormatoAttribute(): string
     {
@@ -53,6 +54,7 @@ class Pago extends Model
     {
         return Carbon::parse($this->pag_fin)->format('d/m/Y');
     }
+
     public function getLimiteFormatoAttribute(): string
     {
         return Carbon::parse($this->fecha_limite_pago)->format('d/m/Y');
@@ -69,7 +71,6 @@ class Pago extends Model
             ->whereDate('fecha_limite_pago', '<', now());
     }
 
-
     public function scopePorVencer($query, $dias = 5)
     {
         return $query->where('estado_pago', 'incompleto')
@@ -81,8 +82,10 @@ class Pago extends Model
     {
         if ($this->estado_pago === 'incompleto') {
             $fechaLimite = Carbon::parse($this->fecha_limite_pago)->startOfDay();
+
             return now()->startOfDay()->gt($fechaLimite); // SOLO si es antes de hoy
         }
+
         return false;
     }
 
@@ -91,9 +94,9 @@ class Pago extends Model
         if ($this->pago_vencido) {
             $diasVencidos = Carbon::parse($this->fecha_limite_pago)->diffInDays(now(), false);
             if ($diasVencidos <= 5) {
-                return '¡ATENCIÓN! El pago del alumno ' . $this->alumno->alum_nombre . ' está vencido hace ' . $diasVencidos . ' día(s).';
+                return '¡ATENCIÓN! El pago del alumno '.$this->alumno->alum_nombre.' está vencido hace '.$diasVencidos.' día(s).';
             }
-//            return '¡ATENCIÓN! El pago de ' . $this->alumno->alum_nombre . ' está vencido hace ' . $diasVencidos . ' día';
+            //            return '¡ATENCIÓN! El pago de ' . $this->alumno->alum_nombre . ' está vencido hace ' . $diasVencidos . ' día';
 
         }
 
@@ -116,8 +119,9 @@ class Pago extends Model
     {
         if ($this->pago_por_vencer) {
             $diasRestantes = now()->diffInDays($this->fecha_limite_pago);
+
             // Accedemos al nombre del alumno a través de la relación
-            return 'Pago incompleto de ' . ($this->alumno->alum_nombre ?? 'Alumno desconocido') . ' por vencer en ' . $diasRestantes . ' días';
+            return 'Pago incompleto de '.($this->alumno->alum_nombre ?? 'Alumno desconocido').' por vencer en '.$diasRestantes.' días';
 
         }
 
@@ -130,21 +134,22 @@ class Pago extends Model
             $inicio = Carbon::parse($this->pag_inicio);
             $fin = Carbon::parse($this->pag_fin);
             $diferenciaDias = $inicio->diffInDays($fin);
-            
+
             return $diferenciaDias > 90;
         }
-        
+
         return false;
     }
-    
+
     public function getDuracionDiasAttribute()
     {
         if ($this->pag_inicio && $this->pag_fin) {
             $inicio = Carbon::parse($this->pag_inicio);
             $fin = Carbon::parse($this->pag_fin);
+
             return $inicio->diffInDays($fin);
         }
-        
+
         return 0;
     }
 }

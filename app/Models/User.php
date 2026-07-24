@@ -6,6 +6,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+
 // use Laravel\Sanctum\HasApiTokens;
 
 class User extends Authenticatable
@@ -22,6 +23,10 @@ class User extends Authenticatable
         'name',
         'email',
         'password',
+        'rol',
+        'fksede',
+        'telefono',
+        'estado',
     ];
 
     /**
@@ -48,8 +53,11 @@ class User extends Authenticatable
     }
 
     const ROL_ADMIN = 0;
+
     const ROL_EMPLEADO = 1;
+
     const ROL_ASISTENCIA = 2;
+
     const ROL_VENTAS = 3;
 
     public function is($rol)
@@ -67,18 +75,15 @@ class User extends Authenticatable
         return self::whereIn('rol', [self::ROL_ADMIN, self::ROL_EMPLEADO, self::ROL_VENTAS])->get();
     }
 
-     public function getNombreRolAttribute(): ?string
-     {
-         $arr = [
-             self::ROL_ADMIN => 'Administrador',
-             self::ROL_EMPLEADO => 'Empleado',
-             self::ROL_ASISTENCIA => 'Asistencia',
-             self::ROL_VENTAS => 'Asesor de ventas',
-         ];
+    public function getNombreRolAttribute(): ?string
+    {
+        $arr = [
+            self::ROL_ADMIN => 'Administrador',
+            self::ROL_EMPLEADO => 'Empleado',
+            self::ROL_ASISTENCIA => 'Asistencia',
+            self::ROL_VENTAS => 'Asesor de ventas',
+        ];
 
-         return $arr[$this->rol] ?? null;
-     }
-
-
-
+        return $arr[$this->rol] ?? null;
+    }
 }

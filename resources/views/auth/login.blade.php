@@ -4,13 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Login - Ivonne Gym</title>
+    <title>Login - SIGG</title>
     
-    <!-- Tailwind CSS CDN -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Alpine.js -->
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
     
     <style>
         [x-cloak] { display: none !important; }
@@ -73,7 +69,7 @@
             
             <!-- Header -->
             <div class="text-center mb-8">
-                <div class="inline-flex items-center justify-center w-16 h-16 bg-purple-100 rounded-full mb-4">
+                <div class="inline-flex items-center justify-center w-16 h-16 bg-pink-100 rounded-full mb-4">
                     <img src="{{ asset('icon/icongym.png') }}" alt="Logo" class="w-16 h-16 mb-4">
                 </div>
                 <h1 class="text-3xl font-bold text-gray-900 mb-2">Ivonne Gym</h1>
@@ -120,7 +116,7 @@
                                 @input="errors.email = ''"
                                 placeholder="correo@ejemplo.com"
                                 :disabled="isLoading"
-                                :class="errors.email ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-purple-500'"
+                                :class="errors.email ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-pink-500'"
                                 class="w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:border-transparent transition-colors">
                         </div>
                         <p x-show="errors.email" x-text="errors.email" class="text-red-600 text-xs mt-1"></p>
@@ -141,7 +137,7 @@
                                 @input="errors.password = ''"
                                 placeholder="••••••••"
                                 :disabled="isLoading"
-                                :class="errors.password ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-purple-500'"
+                                :class="errors.password ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-pink-500'"
                                 class="w-full pl-10 pr-12 py-3 border rounded-lg focus:ring-2 focus:border-transparent transition-colors">
                             <button
                                 type="button"
@@ -163,10 +159,10 @@
                     <!-- Remember Me -->
                     <div class="flex items-center justify-between">
                         <label class="flex items-center">
-                            <input type="checkbox" name="remember" class="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500">
+                            <input type="checkbox" name="remember" class="w-4 h-4 text-pink-600 border-gray-300 rounded focus:ring-pink-500">
                             <span class="ml-2 text-sm text-gray-600">Recordarme</span>
                         </label>
-                        {{-- <a href="{{ route('password.request') }}" class="text-sm text-purple-600 hover:text-purple-700">
+                        {{-- <a href="{{ route('password.request') }}" class="text-sm text-pink-600 hover:text-pink-700">
                             ¿Olvidaste tu contraseña?
                         </a> --}}
                     </div>
@@ -175,7 +171,7 @@
                     <button
                         type="submit"
                         :disabled="isLoading"
-                        class="w-full bg-purple-600 hover:bg-purple-700 text-white py-3 rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                        class="w-full bg-pink-600 hover:bg-pink-700 text-white py-3 rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
                         <span x-show="!isLoading">Iniciar Sesión</span>
                         <span x-show="isLoading" x-cloak>
                             <svg class="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">

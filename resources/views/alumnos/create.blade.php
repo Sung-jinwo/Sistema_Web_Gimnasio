@@ -13,7 +13,7 @@
     title="Registrar Nuevo Alumno"
     subtitle="Complete todos los campos requeridos (*)"
     size="4xl"
-    header-color="purple"
+    header-color="pink"
     :scrollable="true">
     
     {{-- Icono del header --}}
@@ -30,8 +30,8 @@
         {{-- Sección 1: Información Personal --}}
         <div class="space-y-4 ">
             <div class="flex items-center gap-2 pb-2 border-b border-gray-200">
-                <div class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
-                    <svg class="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="w-8 h-8 bg-pink-100 rounded-lg flex items-center justify-center">
+                    <svg class="w-5 h-5 text-pink-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
                     </svg>
                 </div>
@@ -54,12 +54,12 @@
                             required
                             readonly
                             maxlength="4"
-                            class="w-28 px-3 py-2.5 border border-gray-300 rounded-lg bg-gray-50 text-gray-900 font-medium focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                            class="w-28 px-3 py-2.5 border border-gray-300 rounded-lg bg-gray-50 text-gray-900 font-medium focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                             placeholder="####">
                         <button
                             type="button"
                             @click="generarCodigo()"
-                            class="px-4 py-2.5 bg-purple-600 text-white rounded-lg hover:bg-purple-700 active:bg-purple-800 transition-colors flex items-center gap-2 whitespace-nowrap shadow-sm hover:shadow-md"
+                            class="px-4 py-2.5 bg-pink-600 text-white rounded-lg hover:bg-pink-700 active:bg-pink-800 transition-colors flex items-center gap-2 whitespace-nowrap shadow-sm hover:shadow-md"
                             title="Generar código aleatorio">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path>
@@ -78,7 +78,7 @@
                         type="text"
                         name="alum_nombre"
                         required
-                        class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                         placeholder="Nombre del alumno">
                 </div>
 
@@ -91,7 +91,7 @@
                         type="text"
                         name="alum_apellido"
                         required
-                        class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                         placeholder="Apellido del alumno">
                 </div>
 
@@ -103,7 +103,7 @@
                     <select 
                         name="fksexo" 
                         required
-                        class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                        class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
                         <option value="">Seleccione</option>
                         <option value="1">Masculino</option>
                         <option value="2">Femenino</option>
@@ -119,7 +119,7 @@
                         type="date"
                         name="fecha_nac"
                         required
-                        class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                        class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
                 </div>
 
                 <div>
@@ -129,7 +129,7 @@
                     <select 
                         name="fksede" 
                         required
-                        class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                        class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
                         <option value="">Seleccione una sede</option>
                         <option value="1">Jose Crespo</option>
                         <option value="2">Jamie blanco</option>
@@ -157,7 +157,7 @@
                     </label>
                     <select 
                         name="alum_documento" 
-                        class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent">
+                        class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
                         <option value="">Seleccione</option>
                         <option value="DNI">DNI</option>
                         <option value="CE">Carnet de Extranjería</option>
@@ -174,7 +174,7 @@
                         type="text"
                         name="alum_numDoc"
                         required
-                        class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                         placeholder="Ej: 12345678">
                 </div>
             </div>
@@ -200,7 +200,7 @@
                         type="tel"
                         name="alum_telefo"
                         required
-                        class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                         placeholder="987654321">
                 </div>
 
@@ -211,7 +211,7 @@
                     <input
                         type="email"
                         name="alum_correro"
-                        class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                         placeholder="correo@ejemplo.com">
                 </div>
 
@@ -222,7 +222,7 @@
                     <input
                         type="text"
                         name="alum_direccion"
-                        class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                        class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"
                         placeholder="Dirección completa">
                 </div>
             </div>
@@ -246,7 +246,7 @@
                 <textarea
                     name="alum_condi"
                     rows="4"
-                    class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                    class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent resize-none"
                     placeholder="Especifique alguna condición médica, lesión o información relevante..."></textarea>
                 <p class="text-xs text-gray-500 mt-1.5 flex items-center gap-1">
                     <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -274,7 +274,7 @@
             <button
                 type="submit"
                 form="formCreateAlumno"
-                class="flex-1 px-4 py-2.5 bg-gradient-to-r from-purple-600 to-purple-700 text-white rounded-lg font-medium hover:from-purple-700 hover:to-purple-800 active:from-purple-800 active:to-purple-900 transition-all shadow-lg shadow-purple-500/50 hover:shadow-xl hover:shadow-purple-500/60 flex items-center justify-center gap-2">
+                class="flex-1 px-4 py-2.5 bg-gradient-to-r from-pink-600 to-pink-700 text-white rounded-lg font-medium hover:from-pink-700 hover:to-pink-800 active:from-pink-800 active:to-pink-900 transition-all shadow-lg shadow-pink-500/50 hover:shadow-xl hover:shadow-pink-500/60 flex items-center justify-center gap-2">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                 </svg>

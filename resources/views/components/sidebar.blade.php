@@ -43,8 +43,8 @@
                 <!-- User Section -->
                 <div class="p-4 border-b border-gray-800 flex-shrink-0">
                     <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-full bg-purple-500/20 flex items-center justify-center flex-shrink-0">
-                            <span class="text-purple-500 font-bold">{{ substr(auth()->user()->name ?? 'U', 0, 1) }}</span>
+                        <div class="w-10 h-10 rounded-full bg-pink-500/20 flex items-center justify-center flex-shrink-0">
+                            <span class="text-pink-500 font-bold">{{ substr(auth()->user()->name ?? 'U', 0, 1) }}</span>
                         </div>
                         <div x-show="sidebarOpen" class="flex-1 min-w-0">
                             <p class="text-sm font-semibold truncate">{{ auth()->user()->name ?? 'Nombre de usuario' }}</p>
@@ -56,8 +56,7 @@
                 <!-- Navigation Menu -->
                 <nav class="flex-1 p-4 space-y-2 overflow-y-auto">
                         @foreach($menuItems as $item)
-                            {{-- @if(canAccessMenuItem($item)) --}}
-                            @if(true)
+                            @if($canAccessMenuItem($item))
                                 <div>
                                     @if(isset($item['submenu']))
                                         {{-- Item con submenú --}}
@@ -78,10 +77,9 @@
                                             x-transition:enter-end="opacity-100 translate-y-0"
                                             class="ml-4 mt-1 space-y-1 border-l border-gray-700 pl-4">
                                             @foreach($item['submenu'] as $subitem)
-                                                {{-- @if(canAccessMenuItem($subitem)) --}}
-                                                    @if(true)
+                                                @if($canAccessMenuItem($subitem))
                                                     <a href="{{ route($subitem['route']) }}"
-                                                    class="block w-full text-left px-4 py-2 rounded-lg text-sm transition-all {{ request()->routeIs($subitem['route']) ? 'bg-purple-500/20 text-purple-500 font-medium' : 'text-gray-400 hover:text-white hover:bg-gray-800' }}">
+                                                    class="block w-full text-left px-4 py-2 rounded-lg text-sm transition-all {{ request()->routeIs($subitem['route']) ? 'bg-pink-500/20 text-pink-500 font-medium' : 'text-gray-400 hover:text-white hover:bg-gray-800' }}">
                                                         <i class="fas {{ $subitem['icon'] }} mr-2"></i>
                                                         {{ $subitem['label'] }}
                                                     </a>
@@ -96,7 +94,7 @@
                                                 : route($item['route'] . '.index');
                                         @endphp
                                         <a href="{{ $href }}"
-                                        class="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all {{ $isActive($item['route']) ? 'bg-purple-600 text-white' : 'text-gray-300 hover:bg-gray-800' }}">
+                                        class="w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-all {{ $isActive($item['route']) ? 'bg-pink-600 text-white' : 'text-gray-300 hover:bg-gray-800' }}">
                                             <i class="fas {{ $item['icon'] }} w-5 flex-shrink-0"></i>
                                             <span x-show="sidebarOpen" class="text-sm font-medium">{{ $item['label'] }}</span>
                                         </a>
@@ -111,7 +109,7 @@
                 <div class="p-4 border-t border-gray-800 flex-shrink-0">
                     <form method="POST" action="{{ route('logout') }}">
                         @csrf
-                        <button type="submit" class="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-purple-500/10 transition-colors">
+                        <button type="submit" class="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-lg text-gray-300 hover:bg-pink-500/10 transition-colors">
                             <i class="fas fa-right-from-bracket w-5 flex-shrink-0"></i>
                             <span x-show="sidebarOpen" class="text-sm font-medium">Cerrar Sesión</span>
                         </button>

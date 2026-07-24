@@ -11,12 +11,33 @@ return new class extends Migration
      */
     public function up(): void
     {
+        Schema::create('sedes', function (Blueprint $table) {
+            $table->id('id_sede');
+            $table->string('sede_nombre', 100);
+            $table->string('sede_direccion', 200)->nullable();
+            $table->string('sede_telefono', 20)->nullable();
+            $table->string('sede_responsable', 100)->nullable();
+            $table->string('sede_horario', 100)->nullable();
+            $table->boolean('sede_estado')->default(true);
+            $table->timestamps();
+        });
+
+        Schema::create('sexo', function (Blueprint $table) {
+            $table->id('id_sexo');
+            $table->string('sexo_nombre', 20);
+        });
+
         Schema::create('users', function (Blueprint $table) {
             $table->id();
             $table->string('name');
             $table->string('email')->unique();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
+            $table->string('telefono', 20)->nullable();
+            $table->unsignedTinyInteger('rol')->default(1);
+            $table->unsignedBigInteger('fksede')->nullable();
+            $table->boolean('estado')->default(true);
+            $table->foreign('fksede')->references('id_sede')->on('sedes')->nullOnDelete();
             $table->rememberToken();
             $table->timestamps();
         });
@@ -42,8 +63,10 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('users');
-        Schema::dropIfExists('password_reset_tokens');
         Schema::dropIfExists('sessions');
+        Schema::dropIfExists('password_reset_tokens');
+        Schema::dropIfExists('users');
+        Schema::dropIfExists('sexo');
+        Schema::dropIfExists('sedes');
     }
 };

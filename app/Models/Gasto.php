@@ -4,13 +4,15 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class Gato extends Model
+class Gasto extends Model
 {
     protected $table = 'gastos';
-    protected $primaryKey = 'id_gasto';
-    protected $guarded = [];
-    public $timestamps = true;
 
+    protected $primaryKey = 'id_gasto';
+
+    protected $guarded = [];
+
+    public $timestamps = true;
 
     public function sede()
     {
@@ -20,5 +22,10 @@ class Gato extends Model
     public function user()
     {
         return $this->belongsTo(User::class, 'fkuser', 'id');
+    }
+
+    public function categoria()
+    {
+        return $this->belongsTo(CategoriaGasto::class, 'fkcategoria', 'id_categoria');
     }
 }

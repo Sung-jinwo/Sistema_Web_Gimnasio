@@ -10,10 +10,8 @@ class Sidebar extends Component
 {
     public array $menuItems;
 
-    
     public array $userRole;
 
-   
     public string $currentRoute;
 
     public function __construct()
@@ -36,7 +34,7 @@ class Sidebar extends Component
         return [
             [
                 'id' => 'home',
-                'label' => 'Home',
+                'label' => 'Dashboard',
                 'icon' => 'fa-house',
                 'route' => 'home',
                 'roles' => ['admin', 'empleado', 'asistencia', 'ventas'],
@@ -47,31 +45,17 @@ class Sidebar extends Component
                 'icon' => 'fa-users',
                 'route' => 'alumnos',
                 'roles' => ['admin', 'empleado', 'ventas'],
-                'submenu' => [
-                    [
-                        'id' => 'alumnos-listado',
-                        'label' => 'Listado de Alumnos',
-                        'icon' => 'fa-user-graduate',
-                        'route' => 'alumnos.index',
-                    ],
-                    [
-                        'id' => 'alumnos-prospecto',
-                        'label' => 'Prospecto Redes',
-                        'icon' => 'fa-users-slash',
-                        'route' => 'registro.index',
-                    ],
-                ],
             ],
             [
-                'id' => 'asistencia',
+                'id' => 'asistencias',
                 'label' => 'Asistencia',
                 'icon' => 'fa-calendar-check',
-                'route' => 'asistencia',
+                'route' => 'asistencias',
                 'roles' => ['admin', 'empleado', 'asistencia'],
             ],
             [
                 'id' => 'membresias',
-                'label' => 'Membresías',
+                'label' => 'Membresias',
                 'icon' => 'fa-award',
                 'route' => 'membresias',
                 'roles' => ['admin', 'empleado', 'ventas'],
@@ -95,12 +79,14 @@ class Sidebar extends Component
                         'label' => 'Ventas Generadas',
                         'icon' => 'fa-money-bill',
                         'route' => 'ventas.index',
+                        'roles' => ['admin', 'empleado', 'ventas'],
                     ],
                     [
                         'id' => 'ventas-reservados',
                         'label' => 'Listado de Reservados',
                         'icon' => 'fa-clock',
                         'route' => 'ventas.reservados',
+                        'roles' => ['admin', 'empleado', 'ventas'],
                     ],
                 ],
             ],
@@ -116,12 +102,14 @@ class Sidebar extends Component
                         'label' => 'Pagos Completos',
                         'icon' => 'fa-money-bill-wave',
                         'route' => 'pagos.completos',
+                        'roles' => ['admin', 'empleado', 'ventas'],
                     ],
                     [
                         'id' => 'pagos-incompletos',
                         'label' => 'Pagos Incompletos',
                         'icon' => 'fa-money-bill-1',
                         'route' => 'pagos.incompletos',
+                        'roles' => ['admin', 'empleado', 'ventas'],
                     ],
                 ],
             ],
@@ -130,14 +118,21 @@ class Sidebar extends Component
                 'label' => 'Gastos',
                 'icon' => 'fa-calculator',
                 'route' => 'gastos',
-                'roles' => ['admin', 'empleado', 'ventas'],
+                'roles' => ['admin', 'empleado'],
+            ],
+            [
+                'id' => 'caja',
+                'label' => 'Caja',
+                'icon' => 'fa-cash-register',
+                'route' => 'caja',
+                'roles' => ['admin', 'empleado'],
             ],
             [
                 'id' => 'reportes',
-                'label' => 'Reporte',
+                'label' => 'Reportes',
                 'icon' => 'fa-file-lines',
                 'route' => 'reportes',
-                'roles' => ['admin', 'empleado', 'ventas'],
+                'roles' => ['admin', 'empleado'],
                 'submenu' => [
                     [
                         'id' => 'reportes-pagos',
@@ -158,19 +153,20 @@ class Sidebar extends Component
                         'label' => 'Generar Reportes',
                         'icon' => 'fa-file-lines',
                         'route' => 'reportes.formulario',
+                        'roles' => ['admin', 'empleado'],
                     ],
                 ],
             ],
             [
                 'id' => 'usuarios',
-                'label' => 'Usuario',
+                'label' => 'Usuarios',
                 'icon' => 'fa-user',
                 'route' => 'usuarios',
                 'roles' => ['admin'],
             ],
             [
                 'id' => 'graficos',
-                'label' => 'Gráficos',
+                'label' => 'Graficos',
                 'icon' => 'fa-chart-column',
                 'route' => 'graficos',
                 'roles' => ['admin'],
@@ -180,7 +176,7 @@ class Sidebar extends Component
 
     private function getUserRoleInfo(): array
     {
-        if (!auth()->check()) {
+        if (! auth()->check()) {
             return ['icon' => 'fas fa-user', 'text' => 'Invitado'];
         }
 
@@ -197,21 +193,21 @@ class Sidebar extends Component
         if (defined('App\Models\User::ROL_ASISTENCIA') && $user->is(constant('App\Models\User::ROL_ASISTENCIA'))) {
             return [
                 'icon' => 'fas fa-calendar-check',
-                'text' => 'Asistencia | ' . ($user->sede->sede_nombre ?? 'Sin sede asignada'),
+                'text' => 'Asistencia | '.($user->sede->sede_nombre ?? 'Sin sede asignada'),
             ];
         }
 
         if (defined('App\Models\User::ROL_EMPLEADO') && $user->is(constant('App\Models\User::ROL_EMPLEADO'))) {
             return [
                 'icon' => 'fas fa-user-tie',
-                'text' => 'Empleado | ' . ($user->sede->sede_nombre ?? 'Sin sede asignada'),
+                'text' => 'Empleado | '.($user->sede->sede_nombre ?? 'Sin sede asignada'),
             ];
         }
 
         if (defined('App\Models\User::ROL_VENTAS') && $user->is(constant('App\Models\User::ROL_VENTAS'))) {
             return [
                 'icon' => 'fas fa-user',
-                'text' => 'Ventas | ' . ($user->name ?? 'Sin nombre'),
+                'text' => 'Ventas | '.($user->name ?? 'Sin nombre'),
             ];
         }
 
@@ -226,7 +222,7 @@ class Sidebar extends Component
      */
     public function canAccessMenuItem(array $item): bool
     {
-        if (!isset($item['roles']) || !auth()->check()) {
+        if (! isset($item['roles']) || ! auth()->check()) {
             return true;
         }
 
@@ -234,7 +230,7 @@ class Sidebar extends Component
         $allowedRoles = $item['roles'];
 
         foreach ($allowedRoles as $role) {
-            $roleConstant = 'App\Models\User::ROL_' . strtoupper($role);
+            $roleConstant = 'App\Models\User::ROL_'.strtoupper($role);
             if (defined($roleConstant) && $user->is(constant($roleConstant))) {
                 return true;
             }
@@ -248,8 +244,6 @@ class Sidebar extends Component
      */
     public function isActive(string $route): string
     {
-        return request()->routeIs($route . '*') ? 'active' : '';
+        return request()->routeIs($route.'*') ? 'active' : '';
     }
-
-
 }

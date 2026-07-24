@@ -2,41 +2,48 @@
 
 namespace App\Models;
 
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\DB;
 
 class Alumno extends Model
 {
+    use SoftDeletes;
+
     protected $table = 'alumno';
+
     protected $primaryKey = 'id_alumno';
+
     protected $guarded = [];
+
     public $timestamps = true;
 
-        // protected $fillable = [
-        // 'alum_codigo',
-        // 'alum_nombre',
-        // 'alum_apellido',
-        // 'fksexo',
-        // 'fecha_nac',
-        // 'fksede',
-        // 'alum_documento',
-        // 'alum_numDoc',
-        // 'alum_telefo',
-        // 'alum_correro',  
-        // 'alum_direccion',
-        // 'alum_condi',
-        // 'alum_estado',
-        // 'fkuser'
-        // ];
-
+    // protected $fillable = [
+    // 'alum_codigo',
+    // 'alum_nombre',
+    // 'alum_apellido',
+    // 'fksexo',
+    // 'fecha_nac',
+    // 'fksede',
+    // 'alum_documento',
+    // 'alum_numDoc',
+    // 'alum_telefo',
+    // 'alum_correro',
+    // 'alum_direccion',
+    // 'alum_condi',
+    // 'alum_estado',
+    // 'fkuser'
+    // ];
 
     public function pagos()
     {
-        return $this->hasMany(Pagos::class, 'fkalum', 'id_alumno');
+        return $this->hasMany(Pago::class, 'fkalum', 'id_alumno');
     }
 
     public function padres()
     {
-        return $this->hasMany(Padres::class, 'fkalumno', 'id_alumno');
+        return $this->hasMany(Padre::class, 'fkalumno', 'id_alumno');
     }
 
     public function sede()
@@ -44,15 +51,16 @@ class Alumno extends Model
         return $this->belongsTo(Sede::class, 'fksede', 'id_sede');
     }
 
-    public function mensaje()
+    public function ventas()
     {
-        return $this->hasOne(Mensaje::class, 'fkalum', 'id_alumno');
+        return $this->hasMany(Venta::class, 'fkalum', 'id_alumno');
     }
 
-    public function asistencia()
+    public function asistencias()
     {
-        return $this->hasMany(Asistensias::class, 'fkalum', 'id_alumno');
+        return $this->hasMany(Asistencia::class, 'fkalum', 'id_alumno');
     }
+
     public function getMembresiaVigenteAttribute()
     {
         $fechaActual = now()->format('Y-m-d');
@@ -69,40 +77,41 @@ class Alumno extends Model
     public function scopeConEstadoMembresia($query, $estado)
     {
         $hoy = now()->format('Y-m-d');
-        
+
         // Obtenemos los IDs de los últimos pagos principales
-        $ultimosPagosIds = Pagos::select(DB::raw('MAX(id_pag) as id'))
+        $ultimosPagosIds = Pago::select(DB::raw('MAX(id_pag) as id'))
             ->where('tipo_membresia', 'principal')
             ->groupBy('fkalum')
             ->pluck('id');
-        
-        switch($estado) {
+
+        switch ($estado) {
             case 'vigente':
-                return $query->whereHas('pagos', function($q) use ($hoy, $ultimosPagosIds) {
+                return $query->whereHas('pagos', function ($q) use ($hoy, $ultimosPagosIds) {
                     $q->whereIn('id_pag', $ultimosPagosIds)
-                      ->where('pag_fin', '>=', $hoy);
+                        ->where('pag_fin', '>=', $hoy);
                 });
-                
+
             case 'por_caducar':
                 $fechaLimite = now()->addDays(5)->format('Y-m-d');
-                return $query->whereHas('pagos', function($q) use ($hoy, $fechaLimite, $ultimosPagosIds) {
+
+                return $query->whereHas('pagos', function ($q) use ($hoy, $fechaLimite, $ultimosPagosIds) {
                     $q->whereIn('id_pag', $ultimosPagosIds)
-                      ->where('pag_fin', '>=', $hoy)
-                      ->where('pag_fin', '<=', $fechaLimite);
+                        ->where('pag_fin', '>=', $hoy)
+                        ->where('pag_fin', '<=', $fechaLimite);
                 });
-                
+
             case 'vencido':
-                return $query->whereHas('pagos', function($q) use ($hoy, $ultimosPagosIds) {
+                return $query->whereHas('pagos', function ($q) use ($hoy, $ultimosPagosIds) {
                     $q->whereIn('id_pag', $ultimosPagosIds)
-                      ->where('pag_fin', '<', $hoy);
+                        ->where('pag_fin', '<', $hoy);
                 });
-                
+
             case 'sin_membresia':
-                return $query->whereDoesnthave('pagos', function($q) {
+                return $query->whereDoesnthave('pagos', function ($q) {
                     $q->where('tipo_membresia', 'principal');
                 });
         }
-        
+
         return $query;
     }
 
@@ -115,7 +124,6 @@ class Alumno extends Model
         return $fechaNac->diffInYears($now);
     }
 
-
     public function getAlumnoFormatoAttribute(): string
     {
         return Carbon::parse($this->fecha_nac)->format('d/m/Y');
@@ -123,7 +131,7 @@ class Alumno extends Model
 
     public function getRegistroFormatoAttribute(): string
     {
-        return 'dia'.Carbon::parse($this->created_at)->format('d') . ' de ' . Carbon::parse($this->created_at)->locale('es')->monthName . ' del ' . Carbon::parse($this->created_at)->format('Y');
+        return 'dia'.Carbon::parse($this->created_at)->format('d').' de '.Carbon::parse($this->created_at)->locale('es')->monthName.' del '.Carbon::parse($this->created_at)->format('Y');
     }
 
     public function getAlumnoCreatedAttribute(): string
@@ -131,16 +139,15 @@ class Alumno extends Model
         return Carbon::parse($this->created_at)->format('d/m/Y');
     }
 
-
     public function getEstadoMembresiaAttribute(): array
     {
         $pago = $this->membresiaVigente;
 
-        if (!$pago || !$pago->pag_fin) {
+        if (! $pago || ! $pago->pag_fin) {
             return [
                 'estado' => 'Sin membresía',
-                'clase'  => 'status-inactive',
-                'fecha_fin' => null
+                'clase' => 'status-inactive',
+                'fecha_fin' => null,
             ];
         }
 
@@ -150,25 +157,26 @@ class Alumno extends Model
         if ($diferencia < 0) {
             return [
                 'estado' => 'Vencido',
-                'clase'  => 'status-expired',
-                'fecha_fin' => $fechaFin
+                'clase' => 'status-expired',
+                'fecha_fin' => $fechaFin,
             ];
         }
 
         if ($diferencia <= 5) {
             return [
                 'estado' => 'Por caducar / Renovar',
-                'clase'  => 'status-expiring',
-                'fecha_fin' => $fechaFin
+                'clase' => 'status-expiring',
+                'fecha_fin' => $fechaFin,
             ];
         }
 
         return [
             'estado' => 'Vigente',
-            'clase'  => 'status-active',
-            'fecha_fin' => $fechaFin
+            'clase' => 'status-active',
+            'fecha_fin' => $fechaFin,
         ];
     }
+
     public function getClaseEstadoAttribute(): string
     {
         return $this->estado_membresia['clase'];
@@ -186,6 +194,7 @@ class Alumno extends Model
         return $pagoPrincipal ? $pagoPrincipal->estado_pago : 'Sin pago';
 
     }
+
     public function getClasePagoAttribute(): string
     {
         $arr = [
@@ -198,17 +207,16 @@ class Alumno extends Model
 
     public function getNombreCompletoAttribute(): string
     {
-        return $this->alum_nombre.' '.$this->alum_apellido ;
+        return $this->alum_nombre.' '.$this->alum_apellido;
     }
 
     public function setAlumNombreAttribute($value)
     {
-        $this->attributes['alum_nombre'] = mb_convert_case(mb_strtolower($value), MB_CASE_TITLE, "UTF-8");
+        $this->attributes['alum_nombre'] = mb_convert_case(mb_strtolower($value), MB_CASE_TITLE, 'UTF-8');
     }
 
     public function setAlumApellidoAttribute($value)
     {
-        $this->attributes['alum_apellido'] = mb_convert_case(mb_strtolower($value), MB_CASE_TITLE, "UTF-8");
+        $this->attributes['alum_apellido'] = mb_convert_case(mb_strtolower($value), MB_CASE_TITLE, 'UTF-8');
     }
-
 }
