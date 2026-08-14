@@ -90,7 +90,7 @@
                     <i class="fas fa-user-plus text-pink-600"></i>
                     <span class="text-sm font-medium text-gray-700">Nuevo Alumno</span>
                 </a>
-                <a href="{{ route('pagos.create') }}" class="flex items-center gap-3 p-4 rounded-lg border border-gray-200 hover:border-pink-600 hover:bg-pink-600/5 transition-colors">
+                <a href="{{ route('alumnos.index') }}" class="flex items-center gap-3 p-4 rounded-lg border border-gray-200 hover:border-pink-600 hover:bg-pink-600/5 transition-colors">
                     <i class="fas fa-credit-card text-pink-600"></i>
                     <span class="text-sm font-medium text-gray-700">Registrar Pago</span>
                 </a>
@@ -98,7 +98,7 @@
                     <i class="fas fa-door-open text-pink-600"></i>
                     <span class="text-sm font-medium text-gray-700">Asistencia</span>
                 </a>
-                <a href="{{ route('ventas.create') }}" class="flex items-center gap-3 p-4 rounded-lg border border-gray-200 hover:border-pink-600 hover:bg-pink-600/5 transition-colors">
+                <a href="{{ route('ventas.index') }}" class="flex items-center gap-3 p-4 rounded-lg border border-gray-200 hover:border-pink-600 hover:bg-pink-600/5 transition-colors">
                     <i class="fas fa-shopping-cart text-pink-600"></i>
                     <span class="text-sm font-medium text-gray-700">Nueva Venta</span>
                 </a>
@@ -116,9 +116,9 @@
                     <i class="fas fa-chart-pie text-pink-600"></i>
                     <span class="text-sm font-medium text-gray-700">Reportes de Ventas</span>
                 </a>
-                <a href="{{ route('reportes.formulario') }}" class="flex items-center gap-3 p-4 rounded-lg border border-gray-200 hover:border-pink-600 hover:bg-pink-600/5 transition-colors">
+                <a href="{{ route('reportes.index') }}" class="flex items-center gap-3 p-4 rounded-lg border border-gray-200 hover:border-pink-600 hover:bg-pink-600/5 transition-colors">
                     <i class="fas fa-file-alt text-pink-600"></i>
-                    <span class="text-sm font-medium text-gray-700">Generar Reportes</span>
+                    <span class="text-sm font-medium text-gray-700">Ver Todos los Reportes</span>
                 </a>
             </div>
         </div>

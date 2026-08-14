@@ -45,6 +45,11 @@ class Pago extends Model
         return $this->hasMany(PagoDetalle::class, 'fkpago', 'id_pag');
     }
 
+    public function cuotas()
+    {
+        return $this->hasMany(Cuota::class, 'fkpago', 'id_pag');
+    }
+
     public function getPagInicioFormatoAttribute(): string
     {
         return Carbon::parse($this->pag_inicio)->format('d/m/Y');

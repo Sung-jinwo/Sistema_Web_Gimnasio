@@ -6,12 +6,15 @@ use App\Http\Requests\UsuarioRequest;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Spatie\Permission\Models\Role;
 
 class UsuarioController extends Controller
 {
     public function index(Request $request)
     {
-        $query = User::with('sede');
+        $this->authorize('viewAny', User::class);
+
+        $query = User::with(['sede', 'roles']);
 
         if ($request->has('search') && $request->search) {
             $query->where(function ($q) use ($request) {
@@ -20,8 +23,8 @@ class UsuarioController extends Controller
             });
         }
 
-        if ($request->has('rol') && $request->rol !== '') {
-            $query->where('rol', $request->rol);
+        if ($request->has('role') && $request->role !== '') {
+            $query->role($request->role);
         }
 
         if ($request->has('estado') && $request->estado !== '') {
@@ -29,121 +32,126 @@ class UsuarioController extends Controller
         }
 
         $usuarios = $query->orderByDesc('updated_at')->paginate(15);
+        $roles = Role::orderBy('name')->pluck('name');
 
         if ($request->expectsJson()) {
             return response()->json($usuarios);
         }
 
-        return view('usuarios.index', compact('usuarios'));
-    }
-
-    public function create()
-    {
-        return view('usuarios.create');
+        return view('usuarios.index', compact('usuarios', 'roles'));
     }
 
     public function store(UsuarioRequest $request)
     {
+        $this->authorize('create', User::class);
+
         $data = $request->validated();
         $data['password'] = Hash::make($data['password']);
+        $role = $data['role'] ?? 'Local';
+        unset($data['role']);
 
         $usuario = User::create($data);
+        $usuario->assignRole($role);
 
         if ($request->expectsJson()) {
             return response()->json([
                 'success' => true,
                 'message' => 'Usuario creado exitosamente',
-                'usuario' => $usuario,
-            ]);
+                'usuario' => $usuario->load('roles'),
+            ], 201);
         }
 
         return redirect()->route('usuarios.index')
             ->with('success', 'Usuario creado exitosamente');
     }
 
-    public function show(string $id)
-    {
-        $usuario = User::with('sede')->findOrFail($id);
-
-        return view('usuarios.show', compact('usuario'));
-    }
-
     public function edit(string $id)
     {
-        $usuario = User::findOrFail($id);
+        $usuario = User::with('roles')->findOrFail($id);
+        $this->authorize('update', $usuario);
 
         if (request()->expectsJson()) {
-            return response()->json($usuario->makeHidden(['password', 'remember_token']));
+            return response()->json([
+                'data' => $usuario->makeHidden(['password', 'remember_token']),
+                'roles' => Role::orderBy('name')->pluck('name'),
+            ]);
         }
 
-        return view('usuarios.edit', compact('usuario'));
+        $roles = Role::orderBy('name')->pluck('name');
+
+        return view('usuarios.edit', compact('usuario', 'roles'));
     }
 
     public function update(UsuarioRequest $request, string $id)
     {
-        try {
-            $usuario = User::findOrFail($id);
-            $data = $request->validated();
+        $usuario = User::findOrFail($id);
+        $this->authorize('update', $usuario);
 
-            if (! empty($data['password'])) {
-                $data['password'] = Hash::make($data['password']);
-            } else {
-                unset($data['password']);
-            }
+        $data = $request->validated();
+        $role = $data['role'] ?? null;
+        unset($data['role']);
 
-            $usuario->update($data);
-
-            if ($request->expectsJson()) {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Usuario actualizado exitosamente',
-                    'usuario' => $usuario->fresh(),
-                ]);
-            }
-
-            return redirect()->route('usuarios.index')
-                ->with('success', 'Usuario actualizado exitosamente');
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            if ($request->expectsJson()) {
-                return response()->json(['error' => 'Usuario no encontrado'], 404);
-            }
-
-            return redirect()->route('usuarios.index')
-                ->withErrors(['error' => 'Usuario no encontrado']);
+        if (! empty($data['password'])) {
+            $data['password'] = Hash::make($data['password']);
+        } else {
+            unset($data['password']);
         }
+
+        $usuario->update($data);
+
+        if ($role) {
+            $usuario->syncRoles([$role]);
+        }
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Usuario actualizado exitosamente',
+                'usuario' => $usuario->fresh('roles'),
+            ]);
+        }
+
+        return redirect()->route('usuarios.index')
+            ->with('success', 'Usuario actualizado exitosamente');
     }
 
     public function destroy(Request $request, string $id)
     {
-        try {
-            if ((int) $id === auth()->id()) {
-                if ($request->expectsJson()) {
-                    return response()->json(['error' => 'No puede eliminar su propio usuario'], 422);
-                }
+        $usuario = User::findOrFail($id);
+        $this->authorize('delete', $usuario);
 
-                return redirect()->route('usuarios.index')
-                    ->withErrors(['error' => 'No puede eliminar su propio usuario']);
-            }
+        $usuario->delete();
 
-            $usuario = User::findOrFail($id);
-            $usuario->delete();
-
-            if ($request->expectsJson()) {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Usuario eliminado exitosamente',
-                ]);
-            }
-
-            return redirect()->route('usuarios.index')
-                ->with('success', 'Usuario eliminado exitosamente');
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            if ($request->expectsJson()) {
-                return response()->json(['error' => 'Usuario no encontrado'], 404);
-            }
-
-            return redirect()->route('usuarios.index')
-                ->withErrors(['error' => 'Usuario no encontrado']);
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Usuario eliminado exitosamente',
+            ]);
         }
+
+        return redirect()->route('usuarios.index')
+            ->with('success', 'Usuario eliminado exitosamente');
+    }
+
+    public function toggleEstado(Request $request, string $id)
+    {
+        $usuario = User::findOrFail($id);
+        $this->authorize('toggleEstado', $usuario);
+
+        $usuario->estado = ! $usuario->estado;
+        $usuario->save();
+
+        $mensaje = $usuario->estado ? 'Usuario activado.' : 'Usuario desactivado.';
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => $mensaje,
+                'usuario' => $usuario,
+            ]);
+        }
+
+        return redirect()->route('usuarios.index')
+            ->with('success', $mensaje);
     }
 }

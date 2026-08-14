@@ -22,50 +22,60 @@ class AlumnoRequest extends FormRequest
     public function rules(): array
     {
         $alumno = $this->route('alumno');
-                $alumnoId = null;
+        $alumnoId = null;
         
         if (is_object($alumno)) {
             $alumnoId = $alumno->id_alumno;
         } elseif (is_numeric($alumno)) {
             $alumnoId = $alumno;
-        } else {
-            $alumnoId = null;
         }
+
         return [
-            'alum_codigo' => 'nullable|unique:alumno,alum_codigo,' . $alumnoId . ',id_alumno',
-            'alum_nombre' => 'required',
-            'alum_apellido' => 'required',
-            'alum_direccion' => 'nullable',
-            'alum_correro' => 'nullable|email',
-            'alum_telefo' => 'required',
-            'alum_numDoc' => 'required',
-            'alum_documento' => 'required',
+            'alum_codigo' => 'required|string|max:20|unique:alumno,alum_codigo,' . $alumnoId . ',id_alumno',
+            'alum_nombre' => 'required|string|max:100',
+            'alum_apellido' => 'required|string|max:100',
+            'alum_direccion' => 'nullable|string|max:200',
+            'alum_correro' => 'nullable|email|max:100',
+            'alum_telefo' => 'required|string|max:20',
+            'alum_numDoc' => 'required|string|size:8|unique:alumno,alum_numDoc,' . $alumnoId . ',id_alumno',
+            'alum_documento' => 'required|in:DNI,CE,PAS',
             'fksexo' => 'required|exists:sexo,id_sexo',
             'fksede' => 'required|exists:sedes,id_sede',
-            'fkuser' => 'required',
-            'fecha_nac' => 'required|date|before_or_equal:today ',
-            // 'alum_img' => 'nullable|image|mimes:jpg,png|dimensions:max_width=708,max_height=708',
-
+            'fkuser' => 'required|exists:users,id',
+            'fecha_nac' => 'required|date|before_or_equal:today',
+            'alum_condi' => 'nullable|string',
+            'alum_estado' => 'nullable|boolean',
         ];
     }
 
-        public function messages(){
-        return[
-            'alum_codigo.required' => 'Se necesita un Código para el alumno',
-            // 'alum_img.required' => 'No es el Formato indicado',
-            'alum_nombre.required' => 'Se necesita un Nombre para el Alumno',
-            'alum_apellido.required' => 'Se necesita un Apellido para el Alumno',
-            'fksexo.required' => 'Se necesita Seleccionar el sexo del Alumno',
-            'fecha_nac.required' => 'Se necesita la edad del Alumno',
+    public function messages(): array
+    {
+        return [
+            'alum_codigo.required' => 'El código del alumno es obligatorio.',
+            'alum_codigo.unique' => 'El código del alumno ya está registrado.',
+            'alum_codigo.max' => 'El código no puede exceder 20 caracteres.',
+            'alum_nombre.required' => 'El nombre del alumno es obligatorio.',
+            'alum_nombre.max' => 'El nombre no puede exceder 100 caracteres.',
+            'alum_apellido.required' => 'El apellido del alumno es obligatorio.',
+            'alum_apellido.max' => 'El apellido no puede exceder 100 caracteres.',
+            'alum_numDoc.required' => 'El DNI del alumno es obligatorio.',
+            'alum_numDoc.size' => 'El DNI debe tener exactamente 8 dígitos.',
+            'alum_numDoc.unique' => 'El DNI ya está registrado.',
+            'alum_documento.required' => 'El tipo de documento es obligatorio.',
+            'alum_documento.in' => 'El tipo de documento debe ser DNI, CE o PAS.',
+            'fksexo.required' => 'Debe seleccionar el sexo del alumno.',
+            'fksexo.exists' => 'El sexo seleccionado no es válido.',
+            'fecha_nac.required' => 'La fecha de nacimiento es obligatoria.',
+            'fecha_nac.date' => 'La fecha de nacimiento debe ser una fecha válida.',
             'fecha_nac.before_or_equal' => 'La fecha de nacimiento no puede ser una fecha futura.',
-            'alum_telefo.required' => 'Se necesita el teléfono del Alumno',
-            
-            'alum_correro.required' => 'Se necesita un correo para el Alumno',
-            'fkuser.required' => 'Se necesita Seleccionar un Usuario',            
-            'fksede.required' => 'Seleccione la sede de Registro',
-            // 'alum_img.image' => 'El archivo debe ser una imagen válida.',
-            // 'alum_img.mimes' => 'Solo se permiten imágenes en formato JPG o PNG.',
-            // 'alum_img.dimensions' => 'La imagen debe tener exactamente 708x708 píxeles (equivalente a 6x6 cm a 300 DPI).',
+            'alum_telefo.required' => 'El teléfono del alumno es obligatorio.',
+            'alum_telefo.max' => 'El teléfono no puede exceder 20 caracteres.',
+            'alum_correro.email' => 'El correo electrónico debe tener un formato válido.',
+            'alum_correro.max' => 'El correo no puede exceder 100 caracteres.',
+            'fksede.required' => 'Debe seleccionar una sede.',
+            'fksede.exists' => 'La sede seleccionada no es válida.',
+            'fkuser.required' => 'Debe seleccionar un usuario responsable.',
+            'fkuser.exists' => 'El usuario seleccionado no es válido.',
         ];
     }
 }

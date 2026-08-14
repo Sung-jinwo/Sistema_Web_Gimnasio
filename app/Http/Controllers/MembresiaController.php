@@ -3,11 +3,21 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\MembresiaRequest;
+use App\Models\Alumno;
 use App\Models\Membresia;
+use App\Models\MembresiaAlumno;
+use App\Services\MembresiaService;
 use Illuminate\Http\Request;
 
 class MembresiaController extends Controller
 {
+    protected MembresiaService $membresiaService;
+
+    public function __construct(MembresiaService $membresiaService)
+    {
+        $this->membresiaService = $membresiaService;
+    }
+
     public function index(Request $request)
     {
         $query = Membresia::query();
@@ -29,35 +39,28 @@ class MembresiaController extends Controller
         return view('membresias.index', compact('membresias'));
     }
 
-    public function create()
-    {
-        return view('membresias.create');
-    }
-
     public function store(MembresiaRequest $request)
     {
-        $membresia = Membresia::create($request->validated());
+        $data = $request->validated();
+        $data['comision'] = $data['comision'] ?? 0;
+        $data['modalidad'] = $data['modalidad'] ?? 'por_meses';
+        $data['estado'] = $data['estado'] ?? 'A';
+
+        $membresia = Membresia::create($data);
 
         if ($request->expectsJson()) {
             return response()->json([
                 'success' => true,
                 'message' => 'Membresía creada exitosamente',
                 'membresia' => $membresia,
-            ]);
+            ], 201);
         }
 
         return redirect()->route('membresias.index')
             ->with('success', 'Membresía creada exitosamente');
     }
 
-    public function show(string $id)
-    {
-        $membresia = Membresia::findOrFail($id);
-
-        return view('membresias.show', compact('membresia'));
-    }
-
-    public function edit(string $id)
+    public function edit($id)
     {
         $membresia = Membresia::findOrFail($id);
 
@@ -68,54 +71,113 @@ class MembresiaController extends Controller
         return view('membresias.edit', compact('membresia'));
     }
 
-    public function update(MembresiaRequest $request, string $id)
+    public function update(MembresiaRequest $request, $id)
     {
-        try {
-            $membresia = Membresia::findOrFail($id);
-            $membresia->update($request->validated());
+        $membresia = Membresia::findOrFail($id);
+        $data = $request->validated();
 
-            if ($request->expectsJson()) {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Membresía actualizada exitosamente',
-                    'membresia' => $membresia->fresh(),
-                ]);
-            }
+        $membresia->update($data);
 
-            return redirect()->route('membresias.index')
-                ->with('success', 'Membresía actualizada exitosamente');
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            if ($request->expectsJson()) {
-                return response()->json(['error' => 'Membresía no encontrada'], 404);
-            }
-
-            return redirect()->route('membresias.index')
-                ->withErrors(['error' => 'Membresía no encontrada']);
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Membresía actualizada exitosamente',
+                'membresia' => $membresia->fresh(),
+            ]);
         }
+
+        return redirect()->route('membresias.index')
+            ->with('success', 'Membresía actualizada exitosamente');
     }
 
-    public function destroy(Request $request, string $id)
+    public function destroy(Request $request, $id)
     {
-        try {
-            $membresia = Membresia::findOrFail($id);
-            $membresia->delete();
+        $membresia = Membresia::findOrFail($id);
+        $membresia->estado = 'I';
+        $membresia->save();
 
-            if ($request->expectsJson()) {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Membresía eliminada exitosamente',
-                ]);
-            }
-
-            return redirect()->route('membresias.index')
-                ->with('success', 'Membresía eliminada exitosamente');
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            if ($request->expectsJson()) {
-                return response()->json(['error' => 'Membresía no encontrada'], 404);
-            }
-
-            return redirect()->route('membresias.index')
-                ->withErrors(['error' => 'Membresía no encontrada']);
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Membresía desactivada exitosamente',
+            ]);
         }
+
+        return redirect()->route('membresias.index')
+            ->with('success', 'Membresía desactivada exitosamente');
+    }
+
+    public function asignar(Request $request, $alumnoId)
+    {
+        $alumno = Alumno::findOrFail($alumnoId);
+
+        $request->validate([
+            'fkmem' => 'required|exists:membresias,id_mem',
+            'modalidad' => 'required|in:por_meses,por_fechas',
+            'fecha_inicio' => 'required_if:modalidad,por_meses|nullable|date',
+            'fecha_fin' => 'required_if:modalidad,por_fechas|nullable|date|after_or_equal:fecha_inicio',
+        ]);
+
+        $membresiaAlumno = $this->membresiaService->asignarMembresia(
+            $alumnoId,
+            $request->fkmem,
+            $request->modalidad,
+            $request->fecha_inicio,
+            $request->fecha_fin
+        );
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Membresía asignada exitosamente',
+                'data' => $membresiaAlumno->load('membresia'),
+            ], 201);
+        }
+
+        return redirect()->route('alumnos.show', $alumnoId)
+            ->with('success', 'Membresía asignada exitosamente');
+    }
+
+    public function historial($alumnoId)
+    {
+        $alumno = Alumno::findOrFail($alumnoId);
+        $membresias = MembresiaAlumno::with('membresia')
+            ->where('fkalumno', $alumnoId)
+            ->orderByDesc('fecha_inicio')
+            ->paginate(10);
+
+        if (request()->expectsJson()) {
+            return response()->json($membresias);
+        }
+
+        return view('membresias.historial', compact('alumno', 'membresias'));
+    }
+
+    public function renovar(Request $request, $membresiaAlumnoId)
+    {
+        $membresiaAlumno = MembresiaAlumno::with('membresia')->findOrFail($membresiaAlumnoId);
+
+        $request->validate([
+            'fecha_inicio' => 'required|date',
+        ]);
+
+        $nuevaMembresia = $this->membresiaService->asignarMembresia(
+            $membresiaAlumno->fkalumno,
+            $membresiaAlumno->fkmem,
+            $membresiaAlumno->modalidad,
+            $request->fecha_inicio,
+            null
+        );
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Membresía renovada exitosamente',
+                'data' => $nuevaMembresia->load('membresia'),
+            ], 201);
+        }
+
+        return redirect()->route('alumnos.show', $membresiaAlumno->fkalumno)
+            ->with('success', 'Membresía renovada exitosamente');
     }
 }

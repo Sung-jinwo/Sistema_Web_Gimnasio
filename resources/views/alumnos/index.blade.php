@@ -1,181 +1,120 @@
 @extends('layouts.app')
 
-@section('title', 'Gestionar Alumnos')
-@section('page-title', 'Gestionar Alumnos')
-@section('page-subtitle', 'Administración de estudiantes del gimnasio')
-
 @section('content')
-<div x-data="{
-    searchTerm: '',
-    filterMembresia: 'todos',
-    filterEstado: 'todos',
-    modalOpen: false,
-    modalType: 'ver',
-    selectedAlumno: null,
-    showCreateModal: false,
-    showEditModal: false,
-    editUrl: '',
-    alumnoParaEditar: null,
-    
-    // Datos del servidor convertidos a JS
-    alumnos: {{ Js::from($alumnos->items()) }},
-    
-    get filteredAlumnos() {
-        return this.alumnos.filter(alumno => {
-            const matchesSearch = (alumno.alum_nombre || '').toLowerCase().includes(this.searchTerm.toLowerCase()) ||
-                                 (alumno.alum_codigo || '').toLowerCase().includes(this.searchTerm.toLowerCase());
-            const matchesMembresia = this.filterMembresia === 'todos' || alum.membresia_estado === this.filterMembresia;
-            const matchesEstado = this.filterEstado === 'todos' || alumno.alum_estado === this.filterEstado;
-            return matchesSearch && matchesMembresia && matchesEstado;
-        });
-    },
-    
-    openModal(alumno, type) {
-        this.selectedAlumno = alumno;
-        this.modalType = type;
-        this.modalOpen = true;
-    },
-
-    closeModal() {
-        this.modalOpen = false;
-        this.selectedAlumno = null;
-        this.modalType = 'ver';
-    },
-    closeEditModal() {
-        this.showEditModal = false;
-        this.selectedAlumno = null;
-        this.editUrl = '';
-    },
-    
-    closeCreateModal() {
-        this.showCreateModal = false;
-    },
-
-    openEditModal(alumno) {
-        // Crear una copia del objeto para no modificar el original
-        this.selectedAlumno = { 
-            id_alumno: alumno.id_alumno,
-            alum_codigo: alumno.alum_codigo || '',
-            alum_nombre: alumno.alum_nombre || '',
-            alum_apellido: alumno.alum_apellido || '',
-            alum_direccion: alumno.alum_direccion || '',
-            alum_correro: alumno.alum_correro || '',
-            alum_telefo: alumno.alum_telefo || '',
-            alum_numDoc: alumno.alum_numDoc || '',
-            alum_documento: alumno.alum_documento || '',
-            fksexo: alumno.fksexo || '',
-            fksede: alumno.fksede || '',
-            fkuser: alumno.fkuser || '',
-            fecha_nac: alumno.fecha_nac || '',
-            alum_condi: alumno.alum_condi || '',
-            alum_estado: alumno.alum_estado || 'A'
-        };
-        
-        this.editUrl = `{{ route('alumnos.update', ['alumno' => ':id']) }}`.replace(':id', alumno.id_alumno);
-        this.showEditModal = true;
-    },
-    
-    getBadgeColor(status) {
-        const colors = {
-            'Pagada': 'bg-green-100 text-green-800',
-            'A': 'bg-green-100 text-green-800',
-            'Por Pagar': 'bg-yellow-100 text-yellow-800',
-            'Vencida': 'bg-red-100 text-red-800',
-            'Suspendido': 'bg-red-100 text-red-800',
-            'Inactiva': 'bg-gray-100 text-gray-800',
-            'E': 'bg-red-100 text-red-800'
-        };
-        return colors[status] || 'bg-gray-100 text-gray-800';
-    }
-}" class="space-y-6">
-
-    <!-- Header con botón -->
-    <div class="flex justify-between items-center">
-        <x-button @click="showCreateModal = true">
-            + Nuevo Alumno
-        </x-button>
+<div x-data="{ showCreateModal: false, showEditModal: false }" class="container mx-auto px-4 py-6">
+    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+        <h1 class="text-2xl font-bold text-gray-900">Alumnos</h1>
+        @can('create', App\Models\Alumno::class)
+        <button type="button" @click="showCreateModal = true" class="inline-flex items-center px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition">
+            <i class="fas fa-plus mr-2"></i> Nuevo Alumno
+        </button>
+        @endcan
     </div>
 
-    <!-- Filtros -->
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <!-- Buscador -->
-        <x-search-input 
-            placeholder="Buscar por código o nombre..."
-            id="alumnoTexto"
-            name="alumnoTexto" 
-            model="searchTerm" />
-
-        <!-- Filtro Membresía -->
-        <x-select-filter 
-            model="filterMembresia"
-            id="incripcion"
-            name="incripcion"
-            default-label="Todas las membresías"
-            :options="[
-                'Pagada' => 'Pagada',
-                'Por Pagar' => 'Por Pagar',
-                'Vencida' => 'Vencida',
-                'Inactiva' => 'Inactiva'
-            ]" />
-
-        <!-- Filtro Estado -->
-        <x-select-filter 
-            model="filterEstado" 
-            default-label="Todos los estados"
-            id="estado"
-            name="estado"
-            :options="[
-                'A' => 'Activo',
-                'E' => 'Inactivo'
-            ]" />
+    <div class="bg-white rounded-lg shadow-sm p-4 mb-4">
+        <form method="GET" action="{{ route('alumnos.index') }}" class="flex flex-col sm:flex-row gap-3">
+            <input type="text" name="search" value="{{ request('search') }}" placeholder="Buscar por nombre, DNI o código..." class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
+            <select name="sede" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
+                <option value="">Todas las sedes</option>
+                @foreach($sedes as $sede)
+                    <option value="{{ $sede->id_sede }}" {{ request('sede') == $sede->id_sede ? 'selected' : '' }}>{{ $sede->sede_nombre }}</option>
+                @endforeach
+            </select>
+            <select name="estado" class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
+                <option value="">Todos los estados</option>
+                <option value="1" {{ request('estado') === '1' ? 'selected' : '' }}>Activo</option>
+                <option value="0" {{ request('estado') === '0' ? 'selected' : '' }}>Inactivo</option>
+            </select>
+            <button type="submit" class="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition">
+                <i class="fas fa-search mr-2"></i> Buscar
+            </button>
+        </form>
     </div>
 
-    <!-- Tabla -->
-    @include('alumnos.table')
-
-    <div class="flex items-center justify-between">
-        <div class="text-sm text-gray-600">
-            Mostrando {{ $alumnos->firstItem() ?? 0 }} a {{ $alumnos->lastItem() ?? 0 }} de {{ $alumnos->total() }} alumnos
+    <div class="bg-white rounded-lg shadow-sm overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                    <tr>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Código</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">DNI</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Alumno</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">Celular</th>
+                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">Sede</th>
+                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                    </tr>
+                </thead>
+                <tbody class="bg-white divide-y divide-gray-200">
+                    @forelse($alumnos as $alumno)
+                    <tr class="hover:bg-gray-50">
+                        <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">{{ $alumno->alum_codigo }}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{{ $alumno->alum_numDoc }}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{{ $alumno->nombreCompleto }}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500 hidden md:table-cell">{{ $alumno->alum_telefo ?? '-' }}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500 hidden lg:table-cell">{{ $alumno->sede->sede_nombre ?? '-' }}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-center">
+                            @if($alumno->alum_estado)
+                                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-green-100 text-green-800">Activo</span>
+                            @else
+                                <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">Inactivo</span>
+                            @endif
+                        </td>
+                        <td class="px-4 py-3 whitespace-nowrap text-center">
+                            <div class="flex justify-center gap-2">
+                                <a href="{{ route('alumnos.show', $alumno->id_alumno) }}" class="text-blue-600 hover:text-blue-900" title="Ver ficha">
+                                    <i class="fas fa-eye"></i>
+                                </a>
+                                @can('update', $alumno)
+                                <button type="button" onclick="editAlumno({{ $alumno->id_alumno }})" class="text-green-600 hover:text-green-900" title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                @endcan
+                                @can('delete', $alumno)
+                                <form action="{{ route('alumnos.destroy', $alumno->id_alumno) }}" method="POST" class="inline" onsubmit="return confirm('¿Está seguro de eliminar este alumno?')">
+                                    @csrf
+                                    @method('DELETE')
+                                    <button type="submit" class="text-red-600 hover:text-red-900" title="Eliminar">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </form>
+                                @endcan
+                            </div>
+                        </td>
+                    </tr>
+                    @empty
+                    <tr>
+                        <td colspan="7" class="px-4 py-8 text-center text-gray-500">No se encontraron alumnos.</td>
+                    </tr>
+                    @endforelse
+                </tbody>
+            </table>
         </div>
-        <div>
+        @if($alumnos->hasPages())
+        <div class="px-4 py-3 border-t border-gray-200">
             {{ $alumnos->links() }}
         </div>
+        @endif
     </div>
 
-    <!-- Modal Crear -->
     @include('alumnos.create')
-
-     <!-- Modal Ver -->
-    @include('alumnos.show')
-
-    <!-- Modal Editar -->
     @include('alumnos.edit', ['updateRoute' => route('alumnos.update', ['alumno' => ':id'])])
-
-
-    <!-- Modal Eliminar -->
-    <x-modal show="modalOpen && modalType === 'eliminar'" size="md">
-        <h3 class="text-lg font-bold mb-4 text-gray-900">Eliminar Alumno</h3>
-        
-        <p class="text-gray-700 mb-6">
-            ¿Está seguro de que desea eliminar a <span class="font-semibold" x-text="selectedAlumno?.nombre"></span>?
-        </p>
-        
-        <form :action="`{{ route('alumnos.index') }}/${selectedAlumno?.id}`" method="POST">
-            @csrf
-            @method('DELETE')
-        </form>
-
-        <x-slot:footer>
-            <div class="flex gap-3">
-                <x-button variant="outline" @click="modalOpen = false" class="flex-1">
-                    Cancelar
-                </x-button>
-                <x-button variant="danger" type="submit" class="flex-1">
-                    Eliminar
-                </x-button>
-            </div>
-        </x-slot:footer>
-    </x-modal>
-
 </div>
+
+@push('scripts')
+<script>
+function editAlumno(id) {
+    fetch(`/alumnos/${id}/edit`, {
+        headers: {
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        window.dispatchEvent(new CustomEvent('open-edit-modal', { detail: data }));
+    });
+}
+</script>
+@endpush
 @endsection

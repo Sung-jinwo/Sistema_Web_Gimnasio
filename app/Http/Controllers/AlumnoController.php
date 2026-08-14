@@ -4,166 +4,158 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\AlumnoRequest;
 use App\Models\Alumno;
+use App\Models\Sede;
+use App\Services\AlumnoService;
+use App\Services\AuditService;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 
 class AlumnoController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
+    protected AlumnoService $alumnoService;
+    protected AuditService $auditService;
+
+    public function __construct(AlumnoService $alumnoService, AuditService $auditService)
+    {
+        $this->alumnoService = $alumnoService;
+        $this->auditService = $auditService;
+    }
+
     public function index(Request $request)
     {
-        // dd($alumnos);
+        $this->authorize('viewAny', Alumno::class);
 
-        $query = Alumno::query();
+        $filtros = [
+            'search' => $request->input('search'),
+            'sede' => $request->input('sede'),
+            'estado' => $request->input('estado'),
+        ];
 
-        if ($request->has('search')) {
-            $query->where('alum_nombre', 'like', '%'.$request->search.'%')
-                ->orWhere('alum_codigo', 'like', '%'.$request->search.'%');
+        $alumnos = $this->alumnoService->obtenerAlumnosConFiltros($filtros, auth()->user());
+        $sedes = Sede::where('sede_estado', true)->orderBy('sede_nombre')->get();
+
+        if ($request->expectsJson()) {
+            return response()->json($alumnos);
         }
-        // condicionales
 
-        $alumnos = $query->orderByDesc('updated_at')->paginate(10);
-
-        return view('alumnos.index', compact('alumnos'));
-
+        return view('alumnos.index', compact('alumnos', 'sedes'));
     }
 
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
-    {
-        return view('alumnos.create');
-    }
-
-    /**
-     * Store a newly created resource in storage.
-     */
     public function store(AlumnoRequest $request)
     {
-        // dd($request->all());
+        $this->authorize('create', Alumno::class);
 
         $validatedData = $request->validated();
-
-        $alum_codigo = $validatedData['alum_codigo'];
-
-        if (Alumno::where('alum_codigo', $alum_codigo)->exists()) {
-            return redirect()->back()->withErrors(['alum_codigo' => 'El código de alumno ya existe.'])->withInput();
-        }
-
         $validatedData['fkuser'] = auth()->id();
+        $validatedData['alum_estado'] = $request->has('alum_estado') ? true : false;
+
         $alumno = Alumno::create($validatedData);
+
+        $this->auditService->registrarCreacion(
+            'alumnos',
+            'Alumno',
+            $alumno->id_alumno,
+            $alumno->toArray()
+        );
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Alumno creado exitosamente',
+                'alumno' => $alumno,
+            ], 201);
+        }
 
         return redirect()->route('alumnos.index')
             ->with('success', 'Alumno creado exitosamente');
     }
 
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
+    public function show($id)
     {
         $alumno = Alumno::findOrFail($id);
+        $this->authorize('view', $alumno);
 
-        return view('alumnos.show', compact('alumno'));
+        $ficha = $this->alumnoService->obtenerFichaCompleta($id);
+
+        if (request()->expectsJson()) {
+            return response()->json($ficha);
+        }
+
+        return view('alumnos.show', $ficha);
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
-    public function edit(string $id)
+    public function edit($id)
     {
         $alumno = Alumno::findOrFail($id);
+        $this->authorize('update', $alumno);
 
-        // Si es una petición AJAX, devolver JSON
         if (request()->expectsJson()) {
             return response()->json($alumno);
         }
 
-        return view('alumnos.edit', compact('alumno'));
+        $sedes = Sede::where('sede_estado', true)->orderBy('sede_nombre')->get();
+
+        return view('alumnos.edit', compact('alumno', 'sedes'));
     }
 
-    /**
-     * Update the specified resource in storage.
-     */
     public function update(AlumnoRequest $request, $id)
     {
-        try {
-            // Buscar el alumno explícitamente por id_alumno
-            $alumno = Alumno::findOrFail($id);
+        $alumno = Alumno::findOrFail($id);
+        $this->authorize('update', $alumno);
 
-            $validatedData = $request->validated();
+        $valoresAntiguos = $alumno->toArray();
 
-            // Si fkuser no viene en el request, mantener el actual
-            if (! isset($validatedData['fkuser'])) {
-                $validatedData['fkuser'] = $alumno->fkuser ?? auth()->id();
-            }
+        $validatedData = $request->validated();
 
-            // DEBUGGING - Puedes eliminar estos logs después de que funcione
-            Log::info('=== INICIO UPDATE ALUMNO ===');
-            Log::info('ID recibido: '.$id);
-            Log::info('Alumno encontrado - ID: '.$alumno->id_alumno.', Nombre: '.$alumno->alum_nombre);
-            Log::info('Datos a actualizar:', $validatedData);
-
-            // Verificar si el código está duplicado (excepto el mismo alumno)
-            if (isset($validatedData['alum_codigo'])) {
-                $existeCodigo = Alumno::where('alum_codigo', $validatedData['alum_codigo'])
-                    ->where('id_alumno', '!=', $alumno->id_alumno)
-                    ->exists();
-
-                if ($existeCodigo) {
-                    Log::warning('Código duplicado: '.$validatedData['alum_codigo']);
-
-                    return redirect()->back()
-                        ->withErrors(['alum_codigo' => 'El código de alumno ya existe.'])
-                        ->withInput();
-                }
-            }
-
-            // Actualizar el alumno
-            $alumno->update($validatedData);
-
-            Log::info('Alumno actualizado exitosamente - ID: '.$alumno->id_alumno);
-            Log::info('=== FIN UPDATE ALUMNO ===');
-
-            // Si es una petición AJAX, devolver JSON
-            if ($request->expectsJson()) {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Alumno actualizado exitosamente',
-                    'alumno' => $alumno->fresh(),
-                ]);
-            }
-
-            return redirect()->route('alumnos.index')
-                ->with('success', 'Alumno actualizado exitosamente');
-
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            Log::error('Alumno no encontrado con ID: '.$id);
-
-            return redirect()->route('alumnos.index')
-                ->withErrors(['error' => 'El alumno no fue encontrado.']);
-
-        } catch (\Exception $e) {
-            Log::error('Error al actualizar alumno - ID: '.$id);
-            Log::error('Mensaje: '.$e->getMessage());
-            Log::error('Stack trace: '.$e->getTraceAsString());
-
-            return redirect()->back()
-                ->withErrors(['error' => 'Error al actualizar el alumno: '.$e->getMessage()])
-                ->withInput();
+        if (!isset($validatedData['fkuser'])) {
+            $validatedData['fkuser'] = $alumno->fkuser ?? auth()->id();
         }
+
+        $validatedData['alum_estado'] = $request->has('alum_estado') ? true : false;
+
+        $alumno->update($validatedData);
+
+        $this->auditService->registrarEdicion(
+            'alumnos',
+            'Alumno',
+            $alumno->id_alumno,
+            $valoresAntiguos,
+            $alumno->fresh()->toArray()
+        );
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Alumno actualizado exitosamente',
+                'alumno' => $alumno->fresh(),
+            ]);
+        }
+
+        return redirect()->route('alumnos.index')
+            ->with('success', 'Alumno actualizado exitosamente');
     }
 
-    /**
-     * Remove the specified resource from storage.
-     */
-    public function destroy(string $id)
+    public function destroy(Request $request, $id)
     {
         $alumno = Alumno::findOrFail($id);
+        $this->authorize('delete', $alumno);
+
+        $valoresAntiguos = $alumno->toArray();
+
+        $this->auditService->registrarEliminacion(
+            'alumnos',
+            'Alumno',
+            $alumno->id_alumno,
+            $valoresAntiguos
+        );
+
         $alumno->delete();
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Alumno eliminado exitosamente',
+            ]);
+        }
 
         return redirect()->route('alumnos.index')
             ->with('success', 'Alumno eliminado exitosamente');

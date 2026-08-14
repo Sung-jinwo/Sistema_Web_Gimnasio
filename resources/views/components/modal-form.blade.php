@@ -19,7 +19,7 @@
                             </div>
                         @endif
                         <div>
-                            <h3 class="text-xl font-bold text-white">{{ $title }}</h3>
+                            <h3 id="{{ $attributes->get('id', 'modal') }}Title" class="text-xl font-bold text-white">{{ $title }}</h3>
                             @if($subtitle)
                                 <p class="text-white/90 text-sm mt-0.5">{{ $subtitle }}</p>
                             @endif

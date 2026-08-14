@@ -2,10 +2,13 @@
 
 namespace App\Models;
 
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
 class Membresia extends Model
 {
+    use HasFactory;
+
     protected $table = 'membresias';
 
     protected $primaryKey = 'id_mem';
@@ -17,6 +20,11 @@ class Membresia extends Model
     public function pagos()
     {
         return $this->hasMany(Pago::class, 'fkmem', 'id_mem');
+    }
+
+    public function membresiasAlumno()
+    {
+        return $this->hasMany(MembresiaAlumno::class, 'fkmem', 'id_mem');
     }
 
     public function getActivaAttribute(): bool

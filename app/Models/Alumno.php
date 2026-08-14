@@ -3,13 +3,14 @@
 namespace App\Models;
 
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Facades\DB;
 
 class Alumno extends Model
 {
-    use SoftDeletes;
+    use HasFactory, SoftDeletes;
 
     protected $table = 'alumno';
 
@@ -59,6 +60,24 @@ class Alumno extends Model
     public function asistencias()
     {
         return $this->hasMany(Asistencia::class, 'fkalum', 'id_alumno');
+    }
+
+    public function sexo()
+    {
+        return $this->belongsTo(Sexo::class, 'fksexo', 'id_sexo');
+    }
+
+    public function membresiasAlumno()
+    {
+        return $this->hasMany(MembresiaAlumno::class, 'fkalumno', 'id_alumno');
+    }
+
+    public function membresiaActiva()
+    {
+        return $this->hasOne(MembresiaAlumno::class, 'fkalumno', 'id_alumno')
+                    ->where('estado', 'activa')
+                    ->where('fecha_fin', '>=', now()->format('Y-m-d'))
+                    ->latest('fecha_inicio');
     }
 
     public function getMembresiaVigenteAttribute()

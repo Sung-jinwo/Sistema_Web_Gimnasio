@@ -2,23 +2,15 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
-
-// use Laravel\Sanctum\HasApiTokens;
+use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    /** @use HasFactory<\Database\Factories\UserFactory> */
-    use /**HasApiTokens, */ HasFactory, Notifiable;
+    use HasFactory, Notifiable, HasRoles;
 
-    /**
-     * The attributes that are mass assignable.
-     *
-     * @var list<string>
-     */
     protected $fillable = [
         'name',
         'email',
@@ -29,21 +21,11 @@ class User extends Authenticatable
         'estado',
     ];
 
-    /**
-     * The attributes that should be hidden for serialization.
-     *
-     * @var list<string>
-     */
     protected $hidden = [
         'password',
         'remember_token',
     ];
 
-    /**
-     * Get the attributes that should be cast.
-     *
-     * @return array<string, string>
-     */
     protected function casts(): array
     {
         return [
@@ -53,12 +35,14 @@ class User extends Authenticatable
     }
 
     const ROL_ADMIN = 0;
-
     const ROL_EMPLEADO = 1;
-
     const ROL_ASISTENCIA = 2;
-
     const ROL_VENTAS = 3;
+
+    const ROL_SPATIE_ADMIN = 'Administrador';
+    const ROL_SPATIE_LOCAL = 'Local';
+    const ROL_SPATIE_REDES = 'Redes';
+    const ROL_SPATIE_ASISTENCIA = 'Asistencia';
 
     public function is($rol)
     {
@@ -77,6 +61,10 @@ class User extends Authenticatable
 
     public function getNombreRolAttribute(): ?string
     {
+        if ($this->roles->isNotEmpty()) {
+            return $this->roles->first()->name;
+        }
+
         $arr = [
             self::ROL_ADMIN => 'Administrador',
             self::ROL_EMPLEADO => 'Empleado',

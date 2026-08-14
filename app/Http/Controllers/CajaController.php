@@ -3,54 +3,102 @@
 namespace App\Http\Controllers;
 
 use App\Models\Caja;
-use App\Models\Comision;
-use App\Models\Pago;
-use App\Models\Venta;
+use App\Services\CashClosingService;
 use Illuminate\Http\Request;
 
 class CajaController extends Controller
 {
+    protected CashClosingService $cashClosingService;
+
+    public function __construct(CashClosingService $cashClosingService)
+    {
+        $this->cashClosingService = $cashClosingService;
+    }
+
     public function index(Request $request)
     {
-        $caja = Caja::with(['movimientos', 'usuario', 'sede'])
-            ->where('fksede', auth()->user()->fksede)
-            ->whereNull('fecha_cierre')
+        $this->authorize('viewAny', Caja::class);
+
+        $query = Caja::with(['usuario', 'sede']);
+
+        if (!auth()->user()->hasRole('Administrador')) {
+            $query->where('fksede', auth()->user()->fksede);
+        }
+
+        if ($request->has('estado') && $request->estado) {
+            $query->where('estado', $request->estado);
+        }
+
+        $cajas = $query->orderByDesc('fecha_apertura')->paginate(15);
+
+        $cajaAbierta = Caja::where('fksede', auth()->user()->fksede)
+            ->where('estado', 'abierta')
             ->first();
 
-        if ($caja) {
-            $caja->load(['movimientos' => function ($q) {
-                $q->orderByDesc('created_at');
-            }]);
+        if ($cajaAbierta) {
+            $operaciones = $this->cashClosingService->obtenerOperaciones($cajaAbierta);
+            $ventas = $this->cashClosingService->calcularVentas($cajaAbierta);
+            $pagos = $this->cashClosingService->calcularPagos($cajaAbierta);
+            $gastos = $this->cashClosingService->calcularGastosAprobados($cajaAbierta);
+            $comisiones = $this->cashClosingService->calcularComisiones($cajaAbierta);
+            $montoEsperado = $this->cashClosingService->calcularMontoEsperado($cajaAbierta);
+        } else {
+            $operaciones = [];
+            $ventas = ['cantidad' => 0, 'total' => 0];
+            $pagos = ['cantidad' => 0, 'total' => 0, 'por_metodo' => []];
+            $gastos = ['cantidad' => 0, 'total' => 0];
+            $comisiones = ['cantidad' => 0, 'total_base' => 0, 'total_penalizaciones' => 0, 'total_final' => 0];
+            $montoEsperado = 0;
         }
 
         if ($request->expectsJson()) {
-            return response()->json(['caja' => $caja]);
+            return response()->json([
+                'cajas' => $cajas,
+                'caja_abierta' => $cajaAbierta,
+                'operaciones' => $operaciones,
+                'ventas' => $ventas,
+                'pagos' => $pagos,
+                'gastos' => $gastos,
+                'comisiones' => $comisiones,
+                'monto_esperado' => $montoEsperado,
+            ]);
         }
 
-        return view('caja.index', compact('caja'));
+        return view('caja.index', compact(
+            'cajas',
+            'cajaAbierta',
+            'operaciones',
+            'ventas',
+            'pagos',
+            'gastos',
+            'comisiones',
+            'montoEsperado'
+        ));
     }
 
     public function apertura(Request $request)
     {
+        $this->authorize('abrir', Caja::class);
+
         $request->validate([
             'monto_inicial' => 'required|numeric|min:0',
         ], [
-            'monto_inicial.required' => 'El monto inicial es requerido',
-            'monto_inicial.numeric' => 'El monto inicial debe ser un número',
-            'monto_inicial.min' => 'El monto inicial no puede ser negativo',
+            'monto_inicial.required' => 'El monto inicial es requerido.',
+            'monto_inicial.numeric' => 'El monto inicial debe ser un número.',
+            'monto_inicial.min' => 'El monto inicial no puede ser negativo.',
         ]);
 
         $cajaAbierta = Caja::where('fksede', auth()->user()->fksede)
-            ->whereNull('fecha_cierre')
+            ->where('estado', 'abierta')
             ->first();
 
         if ($cajaAbierta) {
             if ($request->expectsJson()) {
-                return response()->json(['error' => 'Ya existe una caja abierta para esta sede'], 422);
+                return response()->json(['error' => 'Ya existe una caja abierta para esta sede.'], 422);
             }
 
             return redirect()->back()
-                ->withErrors(['error' => 'Ya existe una caja abierta para esta sede'])
+                ->withErrors(['error' => 'Ya existe una caja abierta para esta sede.'])
                 ->withInput();
         }
 
@@ -65,82 +113,71 @@ class CajaController extends Controller
         if ($request->expectsJson()) {
             return response()->json([
                 'success' => true,
-                'message' => 'Caja aperturada exitosamente',
+                'message' => 'Caja aperturada exitosamente.',
+                'caja' => $caja,
+            ], 201);
+        }
+
+        return redirect()->route('caja.index')
+            ->with('success', 'Caja aperturada exitosamente.');
+    }
+
+    public function cierre(Request $request, $id)
+    {
+        $caja = Caja::findOrFail($id);
+        $this->authorize('cerrar', $caja);
+
+        $request->validate([
+            'monto_entregado' => 'required|numeric|min:0',
+        ], [
+            'monto_entregado.required' => 'El monto entregado es requerido.',
+            'monto_entregado.numeric' => 'El monto entregado debe ser un número.',
+            'monto_entregado.min' => 'El monto entregado no puede ser negativo.',
+        ]);
+
+        $caja = $this->cashClosingService->cerrarCaja($caja, $request->monto_entregado);
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Caja cerrada exitosamente.',
                 'caja' => $caja,
             ]);
         }
 
         return redirect()->route('caja.index')
-            ->with('success', 'Caja aperturada exitosamente');
+            ->with('success', 'Caja cerrada exitosamente.');
     }
 
-    public function cierre(Request $request, $id)
+    public function pdf($id)
     {
-        $caja = Caja::where('fksede', auth()->user()->fksede)
-            ->whereNull('fecha_cierre')
-            ->first();
+        $caja = Caja::findOrFail($id);
+        $this->authorize('verPdf', $caja);
 
-        if (! $caja) {
-            if ($request->expectsJson()) {
-                return response()->json(['error' => 'No hay una caja abierta para esta sede'], 422);
-            }
+        $pdf = $this->cashClosingService->generarPdf($caja);
 
-            return redirect()->back()
-                ->withErrors(['error' => 'No hay una caja abierta para esta sede']);
-        }
+        return $pdf->download('cierre_caja_' . $caja->id_caja . '_' . date('Y-m-d') . '.pdf');
+    }
 
-        $ingresos = $caja->movimientos()->where('tipo', 'ingreso')->sum('monto');
-        $egresos = $caja->movimientos()->where('tipo', 'egreso')->sum('monto');
-        $montoFinal = $caja->monto_inicial + $ingresos - $egresos;
+    public function anular(Request $request, $id)
+    {
+        $caja = Caja::findOrFail($id);
+        $this->authorize('anular', $caja);
 
-        $caja->monto_final = $montoFinal;
-        $caja->fecha_cierre = now();
-        $caja->estado = 'cerrada';
-        $caja->save();
-
-        $ventas = Venta::where('fksede', $caja->fksede)
-            ->where('estado_venta', 'completado')
-            ->whereBetween('created_at', [$caja->fecha_apertura, $caja->fecha_cierre])
-            ->get();
-
-        $pagos = Pago::where('fksede', $caja->fksede)
-            ->where('estado_pago', 'completo')
-            ->whereBetween('created_at', [$caja->fecha_apertura, $caja->fecha_cierre])
-            ->get();
-
-        $usuariosVentas = $ventas->groupBy('fkusers');
-        foreach ($usuariosVentas as $userId => $ventasUsuario) {
-            $totalVentas = $ventasUsuario->sum('venta_total');
-            Comision::create([
-                'fkuser' => $userId,
-                'fkcaja' => $caja->id_caja,
-                'tipo' => 'venta',
-                'porcentaje' => 10,
-                'monto' => $totalVentas * 0.10,
-            ]);
-        }
-
-        $usuariosPagos = $pagos->groupBy('fkuser');
-        foreach ($usuariosPagos as $userId => $pagosUsuario) {
-            $totalPagos = $pagosUsuario->sum('pag_monto');
-            Comision::create([
-                'fkuser' => $userId,
-                'fkcaja' => $caja->id_caja,
-                'tipo' => 'membresia',
-                'porcentaje' => 10,
-                'monto' => $totalPagos * 0.10,
-            ]);
-        }
+        $caja->update([
+            'estado' => 'anulada',
+            'observacion' => $request->input('observacion', 'Caja anulada por administrador.'),
+        ]);
 
         if ($request->expectsJson()) {
             return response()->json([
                 'success' => true,
-                'message' => 'Caja cerrada exitosamente',
-                'caja' => $caja->fresh()->load('movimientos'),
+                'message' => 'Caja anulada exitosamente.',
+                'caja' => $caja,
             ]);
         }
 
         return redirect()->route('caja.index')
-            ->with('success', 'Caja cerrada exitosamente');
+            ->with('success', 'Caja anulada exitosamente.');
     }
 }

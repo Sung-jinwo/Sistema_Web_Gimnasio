@@ -13,13 +13,19 @@ class GastoRequest extends FormRequest
 
     public function rules(): array
     {
-        return [
+        $rules = [
             'gas_concepto' => 'required|string|max:200',
             'gas_monto' => 'required|numeric|min:0.01',
             'gas_fecha' => 'required|date',
             'fkcategoria' => 'nullable|exists:categorias_gasto,id_categoria',
             'gas_observacion' => 'nullable|string',
         ];
+
+        if ($this->isMethod('put') || $this->isMethod('patch')) {
+            $rules['motivo_rechazo'] = 'required_if:estado,rechazado|nullable|string|max:500';
+        }
+
+        return $rules;
     }
 
     public function messages(): array
@@ -35,6 +41,9 @@ class GastoRequest extends FormRequest
             'gas_fecha.date' => 'La fecha debe ser una fecha válida.',
             'fkcategoria.exists' => 'La categoría de gasto seleccionada no es válida.',
             'gas_observacion.string' => 'La observación debe ser texto.',
+            'motivo_rechazo.required_if' => 'Debe ingresar un motivo para rechazar el gasto.',
+            'motivo_rechazo.string' => 'El motivo debe ser texto.',
+            'motivo_rechazo.max' => 'El motivo no puede superar los 500 caracteres.',
         ];
     }
 }

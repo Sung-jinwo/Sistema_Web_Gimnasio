@@ -37,56 +37,56 @@ class Sidebar extends Component
                 'label' => 'Dashboard',
                 'icon' => 'fa-house',
                 'route' => 'home',
-                'roles' => ['admin', 'empleado', 'asistencia', 'ventas'],
+                'roles' => ['Administrador', 'Local', 'Redes', 'Asistencia'],
             ],
             [
                 'id' => 'alumnos',
                 'label' => 'Alumnos',
                 'icon' => 'fa-users',
                 'route' => 'alumnos',
-                'roles' => ['admin', 'empleado', 'ventas'],
+                'roles' => ['Administrador', 'Local', 'Redes'],
             ],
             [
                 'id' => 'asistencias',
                 'label' => 'Asistencia',
                 'icon' => 'fa-calendar-check',
                 'route' => 'asistencias',
-                'roles' => ['admin', 'empleado', 'asistencia'],
+                'roles' => ['Administrador', 'Local', 'Asistencia'],
             ],
             [
                 'id' => 'membresias',
-                'label' => 'Membresias',
+                'label' => 'Membresías',
                 'icon' => 'fa-award',
                 'route' => 'membresias',
-                'roles' => ['admin', 'empleado', 'ventas'],
+                'roles' => ['Administrador', 'Local', 'Redes'],
             ],
             [
                 'id' => 'productos',
                 'label' => 'Productos',
                 'icon' => 'fa-tshirt',
                 'route' => 'productos',
-                'roles' => ['admin', 'empleado', 'ventas'],
+                'roles' => ['Administrador', 'Local'],
             ],
             [
                 'id' => 'ventas',
                 'label' => 'Ventas',
                 'icon' => 'fa-cart-plus',
                 'route' => 'ventas',
-                'roles' => ['admin', 'empleado', 'ventas'],
+                'roles' => ['Administrador', 'Local'],
                 'submenu' => [
                     [
                         'id' => 'ventas-generadas',
                         'label' => 'Ventas Generadas',
                         'icon' => 'fa-money-bill',
                         'route' => 'ventas.index',
-                        'roles' => ['admin', 'empleado', 'ventas'],
+                        'roles' => ['Administrador', 'Local'],
                     ],
                     [
                         'id' => 'ventas-reservados',
                         'label' => 'Listado de Reservados',
                         'icon' => 'fa-clock',
                         'route' => 'ventas.reservados',
-                        'roles' => ['admin', 'empleado', 'ventas'],
+                        'roles' => ['Administrador', 'Local'],
                     ],
                 ],
             ],
@@ -95,21 +95,21 @@ class Sidebar extends Component
                 'label' => 'Pagos',
                 'icon' => 'fa-money-bill',
                 'route' => 'pagos',
-                'roles' => ['admin', 'empleado', 'ventas'],
+                'roles' => ['Administrador', 'Local'],
                 'submenu' => [
                     [
                         'id' => 'pagos-completos',
                         'label' => 'Pagos Completos',
                         'icon' => 'fa-money-bill-wave',
                         'route' => 'pagos.completos',
-                        'roles' => ['admin', 'empleado', 'ventas'],
+                        'roles' => ['Administrador', 'Local'],
                     ],
                     [
                         'id' => 'pagos-incompletos',
                         'label' => 'Pagos Incompletos',
                         'icon' => 'fa-money-bill-1',
                         'route' => 'pagos.incompletos',
-                        'roles' => ['admin', 'empleado', 'ventas'],
+                        'roles' => ['Administrador', 'Local'],
                     ],
                 ],
             ],
@@ -118,58 +118,128 @@ class Sidebar extends Component
                 'label' => 'Gastos',
                 'icon' => 'fa-calculator',
                 'route' => 'gastos',
-                'roles' => ['admin', 'empleado'],
+                'roles' => ['Administrador', 'Local'],
+            ],
+            [
+                'id' => 'comisiones',
+                'label' => 'Comisiones',
+                'icon' => 'fa-percent',
+                'route' => 'comisiones',
+                'roles' => ['Administrador', 'Local'],
             ],
             [
                 'id' => 'caja',
                 'label' => 'Caja',
                 'icon' => 'fa-cash-register',
                 'route' => 'caja',
-                'roles' => ['admin', 'empleado'],
+                'roles' => ['Administrador', 'Local'],
             ],
             [
                 'id' => 'reportes',
                 'label' => 'Reportes',
                 'icon' => 'fa-file-lines',
                 'route' => 'reportes',
-                'roles' => ['admin', 'empleado'],
+                'roles' => ['Administrador', 'Local'],
                 'submenu' => [
                     [
-                        'id' => 'reportes-pagos',
-                        'label' => 'Listado de pagos',
-                        'icon' => 'fa-money-bill',
+                        'id' => 'reportes-principal',
+                        'label' => 'Todos los Reportes',
+                        'icon' => 'fa-th-large',
                         'route' => 'reportes.index',
-                        'roles' => ['admin'],
+                        'roles' => ['Administrador', 'Local'],
                     ],
                     [
                         'id' => 'reportes-ventas',
-                        'label' => 'Listado de Ventas',
-                        'icon' => 'fa-money-bill',
+                        'label' => 'Ventas',
+                        'icon' => 'fa-shopping-cart',
                         'route' => 'reportes.ventas',
-                        'roles' => ['admin'],
+                        'roles' => ['Administrador', 'Local'],
                     ],
                     [
-                        'id' => 'reportes-formulario',
-                        'label' => 'Generar Reportes',
-                        'icon' => 'fa-file-lines',
-                        'route' => 'reportes.formulario',
-                        'roles' => ['admin', 'empleado'],
+                        'id' => 'reportes-membresias',
+                        'label' => 'Membresías',
+                        'icon' => 'fa-id-card',
+                        'route' => 'reportes.membresias',
+                        'roles' => ['Administrador', 'Local'],
+                    ],
+                    [
+                        'id' => 'reportes-productos',
+                        'label' => 'Productos',
+                        'icon' => 'fa-box',
+                        'route' => 'reportes.productos',
+                        'roles' => ['Administrador', 'Local'],
+                    ],
+                    [
+                        'id' => 'reportes-comisiones',
+                        'label' => 'Comisiones',
+                        'icon' => 'fa-percentage',
+                        'route' => 'reportes.comisiones',
+                        'roles' => ['Administrador'],
+                    ],
+                    [
+                        'id' => 'reportes-gastos',
+                        'label' => 'Gastos',
+                        'icon' => 'fa-receipt',
+                        'route' => 'reportes.gastos',
+                        'roles' => ['Administrador', 'Local'],
+                    ],
+                    [
+                        'id' => 'reportes-caja',
+                        'label' => 'Caja',
+                        'icon' => 'fa-cash-register',
+                        'route' => 'reportes.caja',
+                        'roles' => ['Administrador'],
+                    ],
+                    [
+                        'id' => 'reportes-vencimientos',
+                        'label' => 'Vencimientos',
+                        'icon' => 'fa-calendar-times',
+                        'route' => 'reportes.vencimientos',
+                        'roles' => ['Administrador', 'Local'],
                     ],
                 ],
+            ],
+            [
+                'id' => 'seguimiento',
+                'label' => 'Seguimiento',
+                'icon' => 'fa-chart-line',
+                'route' => 'seguimiento',
+                'roles' => ['Administrador', 'Local', 'Redes'],
+            ],
+            [
+                'id' => 'notificaciones',
+                'label' => 'Notificaciones',
+                'icon' => 'fa-bell',
+                'route' => 'notificaciones',
+                'roles' => ['Administrador', 'Local', 'Redes'],
             ],
             [
                 'id' => 'usuarios',
                 'label' => 'Usuarios',
                 'icon' => 'fa-user',
                 'route' => 'usuarios',
-                'roles' => ['admin'],
+                'roles' => ['Administrador'],
+            ],
+            [
+                'id' => 'sedes',
+                'label' => 'Sedes',
+                'icon' => 'fa-building',
+                'route' => 'sedes',
+                'roles' => ['Administrador'],
             ],
             [
                 'id' => 'graficos',
-                'label' => 'Graficos',
+                'label' => 'Gráficos',
                 'icon' => 'fa-chart-column',
                 'route' => 'graficos',
-                'roles' => ['admin'],
+                'roles' => ['Administrador'],
+            ],
+            [
+                'id' => 'auditoria',
+                'label' => 'Auditoría',
+                'icon' => 'fa-history',
+                'route' => 'auditoria',
+                'roles' => ['Administrador'],
             ],
         ];
     }
@@ -182,32 +252,31 @@ class Sidebar extends Component
 
         $user = auth()->user();
 
-        // Asume que tienes constantes ROL_ADMIN, ROL_ASISTENCIA, etc.
-        if (defined('App\Models\User::ROL_ADMIN') && $user->is(constant('App\Models\User::ROL_ADMIN'))) {
+        if ($user->hasRole('Administrador')) {
             return [
                 'icon' => 'fas fa-shield-alt',
                 'text' => 'Administrador',
             ];
         }
 
-        if (defined('App\Models\User::ROL_ASISTENCIA') && $user->is(constant('App\Models\User::ROL_ASISTENCIA'))) {
+        if ($user->hasRole('Asistencia')) {
             return [
                 'icon' => 'fas fa-calendar-check',
                 'text' => 'Asistencia | '.($user->sede->sede_nombre ?? 'Sin sede asignada'),
             ];
         }
 
-        if (defined('App\Models\User::ROL_EMPLEADO') && $user->is(constant('App\Models\User::ROL_EMPLEADO'))) {
+        if ($user->hasRole('Local')) {
             return [
                 'icon' => 'fas fa-user-tie',
-                'text' => 'Empleado | '.($user->sede->sede_nombre ?? 'Sin sede asignada'),
+                'text' => 'Local | '.($user->sede->sede_nombre ?? 'Sin sede asignada'),
             ];
         }
 
-        if (defined('App\Models\User::ROL_VENTAS') && $user->is(constant('App\Models\User::ROL_VENTAS'))) {
+        if ($user->hasRole('Redes')) {
             return [
                 'icon' => 'fas fa-user',
-                'text' => 'Ventas | '.($user->name ?? 'Sin nombre'),
+                'text' => 'Redes | '.($user->name ?? 'Sin nombre'),
             ];
         }
 
@@ -217,9 +286,6 @@ class Sidebar extends Component
         ];
     }
 
-    /**
-     * Verifica si el usuario puede acceder a un item del menú
-     */
     public function canAccessMenuItem(array $item): bool
     {
         if (! isset($item['roles']) || ! auth()->check()) {
@@ -230,8 +296,7 @@ class Sidebar extends Component
         $allowedRoles = $item['roles'];
 
         foreach ($allowedRoles as $role) {
-            $roleConstant = 'App\Models\User::ROL_'.strtoupper($role);
-            if (defined($roleConstant) && $user->is(constant($roleConstant))) {
+            if ($user->hasRole($role)) {
                 return true;
             }
         }

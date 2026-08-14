@@ -93,6 +93,12 @@
                     </div>
                 @endif
 
+                @if(session('status'))
+                    <div class="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+                        <p class="text-green-800 text-sm">{{ session('status') }}</p>
+                    </div>
+                @endif
+
                 <form 
                     x-ref="form"
                     @submit.prevent="handleSubmit"
@@ -162,9 +168,9 @@
                             <input type="checkbox" name="remember" class="w-4 h-4 text-pink-600 border-gray-300 rounded focus:ring-pink-500">
                             <span class="ml-2 text-sm text-gray-600">Recordarme</span>
                         </label>
-                        {{-- <a href="{{ route('password.request') }}" class="text-sm text-pink-600 hover:text-pink-700">
+                        <a href="{{ route('password.request') }}" class="text-sm text-pink-600 hover:text-pink-700">
                             ¿Olvidaste tu contraseña?
-                        </a> --}}
+                        </a>
                     </div>
 
                     <!-- Submit Button -->
