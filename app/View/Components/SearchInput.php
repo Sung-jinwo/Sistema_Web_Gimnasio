@@ -8,12 +8,9 @@ use Illuminate\View\Component;
 
 class SearchInput extends Component
 {
-
     public string $placeholder;
 
-
     public string $model;
-
 
     public function __construct(
         string $placeholder = 'Buscar...',
@@ -22,7 +19,6 @@ class SearchInput extends Component
         $this->placeholder = $placeholder;
         $this->model = $model;
     }
-
 
     public function render(): View|Closure|string
     {

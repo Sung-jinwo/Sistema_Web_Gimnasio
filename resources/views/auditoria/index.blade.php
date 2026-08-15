@@ -1,6 +1,8 @@
 @extends('layouts.app')
 
 @section('content')
+@section('page-title','Auditoría')
+@section('page-subtitle','Trazabilidad de cambios críticos: quién, cuándo y qué modificó')
 <div class="container mx-auto px-4 py-6">
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
         <div>

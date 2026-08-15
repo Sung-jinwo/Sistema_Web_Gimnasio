@@ -39,13 +39,6 @@
                         <i class="fas fa-key text-pink-600"></i>
                         Cambiar Contraseña
                     </a>
-                    <form method="POST" action="{{ route('logout') }}">
-                        @csrf
-                        <button type="submit" class="w-full flex items-center gap-2 px-4 py-3 text-sm text-red-600 hover:bg-red-50 transition-colors">
-                            <i class="fas fa-sign-out-alt"></i>
-                            Cerrar Sesión
-                        </button>
-                    </form>
                 </div>
             </div>
         </div>

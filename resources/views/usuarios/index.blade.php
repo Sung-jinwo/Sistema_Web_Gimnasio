@@ -1,11 +1,13 @@
 @extends('layouts.app')
 
 @section('content')
-<div x-data="{ showUsuarioModal: false }" class="container mx-auto px-4 py-6">
+@section('page-title','Usuarios')
+@section('page-subtitle','Roles, sedes y accesos del personal')
+<div id="usuariosRoot" x-data="{ showUsuarioModal: false }" class="w-full space-y-5">
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
         <h1 class="text-2xl font-bold text-gray-900">Usuarios</h1>
         @can('create', App\Models\User::class)
-        <button type="button" @click="showUsuarioModal = true; $nextTick(() => { document.getElementById('usuarioForm').reset(); document.getElementById('usuarioForm').action = '{{ route('usuarios.store') }}'; document.getElementById('usuario_method').value = 'POST'; document.querySelector('#usuarioModalTitle').textContent = 'Nuevo Usuario'; document.getElementById('password').required = true; document.getElementById('password_required').style.display = 'inline'; document.getElementById('password_hint').textContent = 'Mínimo 6 caracteres'; })" class="inline-flex items-center px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition">
+        <button type="button" @click="showUsuarioModal = true; $nextTick(() => { document.getElementById('usuarioForm').reset(); document.getElementById('usuarioForm').action = '{{ route('usuarios.store') }}'; document.getElementById('usuario_method').value = 'POST'; document.getElementById('password').required = true; document.getElementById('password_required').style.display = 'inline'; document.getElementById('password_hint').textContent = 'Mínimo 6 caracteres'; })" class="inline-flex items-center px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition">
             <i class="fas fa-plus mr-2"></i> Nuevo Usuario
         </button>
         @endcan
@@ -49,8 +51,8 @@
                     <tr class="hover:bg-gray-50">
                         <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">{{ $usuario->name }}</td>
                         <td class="px-4 py-3 text-sm text-gray-500">{{ $usuario->email }}</td>
-                        <td class="px-4 py-3 text-sm">
-                            <x-badge variant="info">{{ $usuario->roles->first()->name ?? 'Sin rol' }}</x-badge>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm">
+                            <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">{{ $usuario->roles->first()->name ?? 'Sin rol' }}</span>
                         </td>
                         <td class="px-4 py-3 text-sm text-gray-500 hidden md:table-cell">{{ $usuario->sede->sede_nombre ?? '-' }}</td>
                         <td class="px-4 py-3 text-center">
@@ -102,7 +104,7 @@
         @endif
     </div>
 
-    <x-modal-form show="showUsuarioModal" title="Nuevo Usuario" subtitle="Complete los datos del usuario" icon='<i class="fas fa-user text-white"></i>' size="md" headerColor="blue">
+    <x-modal-form show="showUsuarioModal" title="Usuario" subtitle="Cree o modifique los datos del usuario" icon='<i class="fas fa-user text-white"></i>' size="md" headerColor="blue">
         <form id="usuarioForm" method="POST">
             @csrf
             <input type="hidden" id="usuario_method" name="_method" value="POST">
@@ -171,12 +173,14 @@ function editUsuario(id) {
             'X-Requested-With': 'XMLHttpRequest'
         }
     })
-    .then(response => response.json())
+    .then(response => {
+        if (!response.ok) throw new Error('No se pudieron cargar los datos del usuario.');
+        return response.json();
+    })
     .then(data => {
         const usuario = data.data;
         document.getElementById('usuarioForm').action = `/usuarios/${id}`;
         document.getElementById('usuario_method').value = 'PUT';
-        document.querySelector('#usuarioModalTitle').textContent = 'Editar Usuario';
 
         document.getElementById('name').value = usuario.name || '';
         document.getElementById('email').value = usuario.email || '';
@@ -193,8 +197,9 @@ function editUsuario(id) {
         const sedeSelect = document.getElementById('fksede');
         sedeSelect.value = usuario.fksede || '';
 
-        Alpine.$data(document.querySelector('[x-data]')).showUsuarioModal = true;
-    });
+        Alpine.$data(document.getElementById('usuariosRoot')).showUsuarioModal = true;
+    })
+    .catch(error => alert(error.message));
 }
 </script>
 @endpush

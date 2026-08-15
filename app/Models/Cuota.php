@@ -31,10 +31,10 @@ class Cuota extends Model
     public function scopeVencidas($query)
     {
         return $query->where('estado', 'vencida')
-                    ->orWhere(function ($q) {
-                        $q->where('estado', 'pendiente')
-                          ->where('fecha_acordada', '<', now()->format('Y-m-d'));
-                    });
+            ->orWhere(function ($q) {
+                $q->where('estado', 'pendiente')
+                    ->where('fecha_acordada', '<', now()->format('Y-m-d'));
+            });
     }
 
     public function scopePagadas($query)

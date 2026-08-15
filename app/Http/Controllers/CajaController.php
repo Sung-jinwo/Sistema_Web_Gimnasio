@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Caja;
+use App\Models\Sede;
 use App\Services\CashClosingService;
 use Illuminate\Http\Request;
 
@@ -20,9 +21,12 @@ class CajaController extends Controller
         $this->authorize('viewAny', Caja::class);
 
         $query = Caja::with(['usuario', 'sede']);
+        $sedeSeleccionada = auth()->user()->hasRole('Administrador') ? $request->integer('sede') : auth()->user()->fksede;
 
-        if (!auth()->user()->hasRole('Administrador')) {
+        if (! auth()->user()->hasRole('Administrador')) {
             $query->where('fksede', auth()->user()->fksede);
+        } elseif ($sedeSeleccionada) {
+            $query->where('fksede', $sedeSeleccionada);
         }
 
         if ($request->has('estado') && $request->estado) {
@@ -31,9 +35,16 @@ class CajaController extends Controller
 
         $cajas = $query->orderByDesc('fecha_apertura')->paginate(15);
 
-        $cajaAbierta = Caja::where('fksede', auth()->user()->fksede)
+        $cajaAbierta = $sedeSeleccionada ? Caja::where('fksede', $sedeSeleccionada)
             ->where('estado', 'abierta')
-            ->first();
+            ->first() : null;
+        $sedes = Sede::where('sede_estado', true)->orderBy('sede_nombre')->get();
+        $consolidado = Caja::with('sede')->whereDate('fecha_apertura', today())->get()->groupBy('fksede')->map(fn ($cajas) => [
+            'sede' => $cajas->first()->sede?->sede_nombre,
+            'esperado' => $cajas->sum('total_ingresos_esperado'),
+            'entregado' => $cajas->sum('monto_entregado'),
+            'diferencia' => $cajas->sum('diferencia'),
+        ]);
 
         if ($cajaAbierta) {
             $operaciones = $this->cashClosingService->obtenerOperaciones($cajaAbierta);
@@ -72,7 +83,7 @@ class CajaController extends Controller
             'pagos',
             'gastos',
             'comisiones',
-            'montoEsperado'
+            'montoEsperado', 'sedes', 'sedeSeleccionada', 'consolidado'
         ));
     }
 
@@ -82,13 +93,15 @@ class CajaController extends Controller
 
         $request->validate([
             'monto_inicial' => 'required|numeric|min:0',
+            'fksede' => auth()->user()->hasRole('Administrador') ? 'required|exists:sedes,id_sede' : 'nullable',
         ], [
             'monto_inicial.required' => 'El monto inicial es requerido.',
             'monto_inicial.numeric' => 'El monto inicial debe ser un número.',
             'monto_inicial.min' => 'El monto inicial no puede ser negativo.',
         ]);
 
-        $cajaAbierta = Caja::where('fksede', auth()->user()->fksede)
+        $sedeId = auth()->user()->hasRole('Administrador') ? $request->integer('fksede') : auth()->user()->fksede;
+        $cajaAbierta = Caja::where('fksede', $sedeId)
             ->where('estado', 'abierta')
             ->first();
 
@@ -105,7 +118,7 @@ class CajaController extends Controller
         $caja = Caja::create([
             'monto_inicial' => $request->monto_inicial,
             'fkuser' => auth()->id(),
-            'fksede' => auth()->user()->fksede,
+            'fksede' => $sedeId,
             'fecha_apertura' => now(),
             'estado' => 'abierta',
         ]);
@@ -156,7 +169,7 @@ class CajaController extends Controller
 
         $pdf = $this->cashClosingService->generarPdf($caja);
 
-        return $pdf->download('cierre_caja_' . $caja->id_caja . '_' . date('Y-m-d') . '.pdf');
+        return $pdf->download('cierre_caja_'.$caja->id_caja.'_'.date('Y-m-d').'.pdf');
     }
 
     public function anular(Request $request, $id)

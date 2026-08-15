@@ -7,11 +7,12 @@ use Carbon\Carbon;
 class PenaltyService
 {
     const TOLERANCIA_DIAS = 7;
+
     const PENALIZACION_POR_SEMANA = 5.00;
 
     public function calcularPenalizacion(?string $fechaAcordada, ?string $fechaPagoReal, float $comisionBase): array
     {
-        if (!$fechaAcordada || !$fechaPagoReal) {
+        if (! $fechaAcordada || ! $fechaPagoReal) {
             return [
                 'dias_retraso' => 0,
                 'semanas_retraso' => 0,

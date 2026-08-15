@@ -75,6 +75,7 @@ class Caja extends Model
         }
 
         $color = $this->diferencia > 0 ? 'text-green-600' : ($this->diferencia < 0 ? 'text-red-600' : 'text-gray-600');
+
         return $color;
     }
 

@@ -28,12 +28,18 @@ class MembresiaService
         return DB::transaction(function () use ($alumnoId, $membresiaId, $modalidad, $fechaInicio, $fechaFin) {
             $membresia = Membresia::findOrFail($membresiaId);
 
+            if ($membresia->modalidad === 'por_fechas') {
+                $fechaInicio = $membresia->fecha_inicio_fija?->format('Y-m-d');
+                $fechaFin = $membresia->fecha_fin_fija?->format('Y-m-d');
+                $modalidad = 'por_fechas';
+            }
+
             $fechaInicioCarbon = $fechaInicio ? Carbon::parse($fechaInicio) : Carbon::now();
             $fechaFinCarbon = $fechaFin ? Carbon::parse($fechaFin) : null;
 
             $fechaFinCalculada = $this->calcularFechaFin(
                 $fechaInicioCarbon,
-                $membresia->mem_duracion,
+                (int) ($membresia->mem_duracion ?? 0),
                 $modalidad,
                 $fechaFinCarbon
             );
@@ -65,18 +71,18 @@ class MembresiaService
         $query = MembresiaAlumno::with(['alumno.sede', 'membresia'])
             ->where('estado', 'activa');
 
-        if (!empty($filtros['sede'])) {
+        if (! empty($filtros['sede'])) {
             $query->whereHas('alumno', function ($q) use ($filtros) {
                 $q->where('fksede', $filtros['sede']);
             });
         }
 
-        if (!empty($filtros['mes'])) {
+        if (! empty($filtros['mes'])) {
             $query->whereMonth('fecha_fin', $filtros['mes'])
-                  ->whereYear('fecha_fin', $filtros['anio'] ?? now()->year);
+                ->whereYear('fecha_fin', $filtros['anio'] ?? now()->year);
         }
 
-        if (!empty($filtros['estado'])) {
+        if (! empty($filtros['estado'])) {
             $hoy = now()->format('Y-m-d');
             switch ($filtros['estado']) {
                 case 'por_vencer':
@@ -98,7 +104,7 @@ class MembresiaService
     public function actualizarEstadosVencidos(): int
     {
         $hoy = now()->format('Y-m-d');
-        
+
         return MembresiaAlumno::where('estado', 'activa')
             ->where('fecha_fin', '<', $hoy)
             ->update(['estado' => 'vencida']);

@@ -17,6 +17,11 @@ class Membresia extends Model
 
     public $timestamps = true;
 
+    protected $casts = [
+        'fecha_inicio_fija' => 'date',
+        'fecha_fin_fija' => 'date',
+    ];
+
     public function pagos()
     {
         return $this->hasMany(Pago::class, 'fkmem', 'id_mem');

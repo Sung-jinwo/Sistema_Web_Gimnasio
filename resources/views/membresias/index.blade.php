@@ -1,7 +1,9 @@
 @extends('layouts.app')
 
 @section('content')
-<div x-data="{ showCreateModal: false, showEditModal: false }" class="container mx-auto px-4 py-6">
+@section('page-title','Catálogo de membresías')
+@section('page-subtitle','Planes por duración o por fechas fijas')
+<div id="membresiasRoot" x-data="{ showCreateModal: false, showEditModal: false }" class="w-full space-y-5">
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
         <h1 class="text-2xl font-bold text-gray-900">Catálogo de Membresías</h1>
         <button type="button" @click="showCreateModal = true" class="inline-flex items-center px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition">
@@ -58,7 +60,7 @@
                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500 hidden md:table-cell">{{ $membresia->comision }}%</td>
                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500 hidden md:table-cell">{{ $membresia->mem_duracion }} días</td>
                         <td class="px-4 py-3 whitespace-nowrap text-sm hidden lg:table-cell">
-                            <x-badge variant="info">{{ $membresia->mem_categoria }}</x-badge>
+                            <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">{{ $membresia->mem_categoria }}</span>
                         </td>
                         <td class="px-4 py-3 whitespace-nowrap text-center">
                             @if($membresia->estado === 'A')
@@ -72,15 +74,13 @@
                                 <button type="button" onclick="editMembresia({{ $membresia->id_mem }})" class="text-blue-600 hover:text-blue-900" title="Editar">
                                     <i class="fas fa-edit"></i>
                                 </button>
-                                @if($membresia->estado === 'A')
-                                <form action="{{ route('membresias.destroy', $membresia->id_mem) }}" method="POST" class="inline" onsubmit="return confirm('¿Está seguro de desactivar esta membresía?')">
+                                <form action="{{ route('membresias.destroy', $membresia->id_mem) }}" method="POST" class="inline" onsubmit="return confirm('¿Confirma el cambio de estado?')">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="text-red-600 hover:text-red-900" title="Desactivar">
-                                        <i class="fas fa-toggle-on"></i>
+                                    <button type="submit" class="{{ $membresia->estado === 'A' ? 'text-red-600' : 'text-green-600' }}" title="Cambiar estado">
+                                        <i class="fas {{ $membresia->estado === 'A' ? 'fa-toggle-on' : 'fa-toggle-off' }}"></i> {{ $membresia->estado === 'A' ? 'Desactivar' : 'Activar' }}
                                     </button>
                                 </form>
-                                @endif
                             </div>
                         </td>
                     </tr>
@@ -135,6 +135,18 @@
             <div id="duracionField">
                 <label for="mem_duracion" class="block text-sm font-medium text-gray-700 mb-1">Duración (días) <span class="text-red-500">*</span></label>
                 <input type="number" id="mem_duracion" name="mem_duracion" min="1" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
+            </div>
+            <div id="fechasField" class="hidden">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Inicio fijo <span class="text-red-500">*</span></label>
+                        <input id="fecha_inicio_fija" type="date" name="fecha_inicio_fija" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Fin fijo <span class="text-red-500">*</span></label>
+                        <input id="fecha_fin_fija" type="date" name="fecha_fin_fija" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
+                    </div>
+                </div>
             </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -213,6 +225,18 @@
                 <label for="edit_mem_duracion" class="block text-sm font-medium text-gray-700 mb-1">Duración (días) <span class="text-red-500">*</span></label>
                 <input type="number" id="edit_mem_duracion" name="mem_duracion" min="1" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
             </div>
+            <div id="editFechasField" class="hidden">
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Inicio fijo <span class="text-red-500">*</span></label>
+                        <input id="edit_fecha_inicio_fija" type="date" name="fecha_inicio_fija" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
+                    </div>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Fin fijo <span class="text-red-500">*</span></label>
+                        <input id="edit_fecha_fin_fija" type="date" name="fecha_fin_fija" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
+                    </div>
+                </div>
+            </div>
 
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
@@ -258,26 +282,36 @@
 function toggleModalidad(valor) {
     const duracionField = document.getElementById('duracionField');
     const duracionInput = document.getElementById('mem_duracion');
+    const fechasField = document.getElementById('fechasField');
     
     if (valor === 'por_fechas') {
         duracionField.style.display = 'none';
         duracionInput.removeAttribute('required');
+        fechasField.classList.remove('hidden');
+        document.getElementById('fecha_inicio_fija').required = true;
+        document.getElementById('fecha_fin_fija').required = true;
     } else {
         duracionField.style.display = 'block';
         duracionInput.setAttribute('required', 'required');
+        fechasField.classList.add('hidden');
+        document.getElementById('fecha_inicio_fija').required = false;
+        document.getElementById('fecha_fin_fija').required = false;
     }
 }
 
 function toggleEditModalidad(valor) {
     const duracionField = document.getElementById('editDuracionField');
     const duracionInput = document.getElementById('edit_mem_duracion');
+    const fechasField = document.getElementById('editFechasField');
     
     if (valor === 'por_fechas') {
         duracionField.style.display = 'none';
         duracionInput.removeAttribute('required');
+        fechasField.classList.remove('hidden');
     } else {
         duracionField.style.display = 'block';
         duracionInput.setAttribute('required', 'required');
+        fechasField.classList.add('hidden');
     }
 }
 
@@ -294,16 +328,18 @@ function editMembresia(id) {
         document.getElementById('edit_mem_nombre').value = data.mem_nombre || '';
         document.getElementById('edit_mem_precio').value = data.mem_precio || '';
         document.getElementById('edit_comision').value = data.comision || 0;
+        document.getElementById('edit_fecha_inicio_fija').value = data.fecha_inicio_fija ? data.fecha_inicio_fija.substring(0, 10) : '';
+        document.getElementById('edit_fecha_fin_fija').value = data.fecha_fin_fija ? data.fecha_fin_fija.substring(0, 10) : '';
         document.getElementById('edit_mem_duracion').value = data.mem_duracion || '';
         document.getElementById('edit_mem_categoria').value = data.mem_categoria || 'Regular';
         document.getElementById('edit_mem_tipo').value = data.mem_tipo || 'Mensual';
         document.getElementById('edit_mem_beneficios').value = data.mem_beneficios || '';
         
-        const modalidad = data.modalidad || 'por_meses';
-        document.querySelector(`input[name="modalidad"][value="${modalidad}"]`).checked = true;
+        const modalidad = data.modalidad === 'por_duracion' ? 'por_meses' : (data.modalidad || 'por_meses');
+        document.getElementById('editForm').querySelector(`input[name="modalidad"][value="${modalidad}"]`).checked = true;
         toggleEditModalidad(modalidad);
         
-        Alpine.$data(document.querySelector('[x-data]')).showEditModal = true;
+        Alpine.$data(document.getElementById('membresiasRoot')).showEditModal = true;
     });
 }
 </script>

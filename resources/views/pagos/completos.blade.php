@@ -1,6 +1,8 @@
 @extends('layouts.app')
 
 @section('content')
+@section('page-title','Historial de pagos completados')
+@section('page-subtitle','Operaciones sin saldo pendiente')
 <div class="container mx-auto px-4 py-6">
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
         <h1 class="text-2xl font-bold text-gray-900">Pagos Completos</h1>

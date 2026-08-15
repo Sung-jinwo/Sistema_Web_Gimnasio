@@ -66,7 +66,7 @@ class AttendanceService
     {
         $alumno = $this->buscarAlumno($codigoODocumento);
 
-        if (!$alumno) {
+        if (! $alumno) {
             return [
                 'success' => false,
                 'message' => 'Alumno no encontrado',
@@ -74,7 +74,7 @@ class AttendanceService
             ];
         }
 
-        if (!$this->validarAlumnoActivo($alumno)) {
+        if (! $this->validarAlumnoActivo($alumno)) {
             return [
                 'success' => false,
                 'message' => 'El alumno está inactivo',
@@ -82,7 +82,7 @@ class AttendanceService
             ];
         }
 
-        if (!$this->validarMembresiaVigente($alumno)) {
+        if (! $this->validarMembresiaVigente($alumno)) {
             return [
                 'success' => false,
                 'message' => 'La membresía del alumno está vencida',

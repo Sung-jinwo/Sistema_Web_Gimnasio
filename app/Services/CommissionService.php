@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Models\Comision;
 use App\Models\MembresiaAlumno;
-use App\Models\Producto;
 use App\Models\Venta;
 
 class CommissionService
@@ -97,6 +96,7 @@ class CommissionService
     protected function obtenerTipoComision(int $ventaId): string
     {
         $venta = Venta::find($ventaId);
+
         return $venta && $venta->tipo_venta === 'membresia' ? 'membresia' : 'venta';
     }
 }

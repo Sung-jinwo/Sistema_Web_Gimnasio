@@ -93,18 +93,18 @@ class MembresiaController extends Controller
     public function destroy(Request $request, $id)
     {
         $membresia = Membresia::findOrFail($id);
-        $membresia->estado = 'I';
+        $membresia->estado = $membresia->estado === 'A' ? 'I' : 'A';
         $membresia->save();
 
         if ($request->expectsJson()) {
             return response()->json([
                 'success' => true,
-                'message' => 'Membresía desactivada exitosamente',
+                'message' => $membresia->estado === 'A' ? 'Membresía activada exitosamente' : 'Membresía desactivada exitosamente',
             ]);
         }
 
         return redirect()->route('membresias.index')
-            ->with('success', 'Membresía desactivada exitosamente');
+            ->with('success', $membresia->estado === 'A' ? 'Membresía activada exitosamente' : 'Membresía desactivada exitosamente');
     }
 
     public function asignar(Request $request, $alumnoId)

@@ -80,7 +80,7 @@ class ReportController extends Controller
         );
 
         $sedes = $this->obtenerSedes();
-        $categorias = Categoria::orderBy('cat_nombre')->get();
+        $categorias = Categoria::where('cat_estado', true)->select('id_categoria', 'cat_nombre')->distinct()->orderBy('cat_nombre')->get();
 
         return view('reportes.productos', compact('data', 'sedes', 'categorias'));
     }
@@ -115,7 +115,7 @@ class ReportController extends Controller
         );
 
         $sedes = $this->obtenerSedes();
-        $categorias = CategoriaGasto::orderBy('cat_nombre')->get();
+        $categorias = CategoriaGasto::select('id_categoria', 'cat_nombre')->distinct()->orderBy('cat_nombre')->get();
 
         return view('reportes.gastos', compact('data', 'sedes', 'categorias'));
     }
@@ -160,7 +160,7 @@ class ReportController extends Controller
     protected function authorizeReporte(): void
     {
         $user = auth()->user();
-        if (!$user->hasRole(['Administrador', 'Local'])) {
+        if (! $user->hasRole(['Administrador', 'Local'])) {
             abort(403, 'No tienes permiso para acceder a los reportes.');
         }
     }
@@ -177,7 +177,7 @@ class ReportController extends Controller
     protected function obtenerSedes()
     {
         if (auth()->user()->hasRole('Administrador')) {
-            return Sede::where('sede_estado', true)->orderBy('sede_nombre')->get();
+            return Sede::where('sede_estado', true)->select('id_sede', 'sede_nombre')->distinct()->orderBy('sede_nombre')->get();
         }
 
         return Sede::where('id_sede', auth()->user()->fksede)->get();
@@ -189,37 +189,37 @@ class ReportController extends Controller
 
         if ($sedeId) {
             $query->where('fksede', $sedeId);
-        } elseif (!auth()->user()->hasRole('Administrador')) {
+        } elseif (! auth()->user()->hasRole('Administrador')) {
             $query->where('fksede', auth()->user()->fksede);
         }
 
-        return $query->orderBy('name')->get();
+        return $query->select('id', 'name', 'fksede')->distinct()->orderBy('name')->get();
     }
 
     protected function exportarExcel(string $tipo, array $data, array $filtros)
     {
-        $className = 'App\\Exports\\' . ucfirst($tipo) . 'ReportExport';
-        
-        if (!class_exists($className)) {
+        $className = 'App\\Exports\\'.ucfirst($tipo).'ReportExport';
+
+        if (! class_exists($className)) {
             abort(404, 'Export no disponible para este reporte.');
         }
 
         $export = new $className($data, $filtros);
-        $filename = $tipo . '_' . date('Y-m-d') . '.xlsx';
+        $filename = $tipo.'_'.date('Y-m-d').'.xlsx';
 
         return \Maatwebsite\Excel\Facades\Excel::download($export, $filename);
     }
 
     protected function exportarPdf(string $tipo, array $data, array $filtros)
     {
-        $viewName = 'reportes.pdf.' . $tipo;
-        
-        if (!view()->exists($viewName)) {
+        $viewName = 'reportes.pdf.'.$tipo;
+
+        if (! view()->exists($viewName)) {
             abort(404, 'Vista PDF no disponible para este reporte.');
         }
 
         $pdf = \Barryvdh\DomPDF\Facade\Pdf::loadView($viewName, compact('data', 'filtros'));
-        $filename = $tipo . '_' . date('Y-m-d') . '.pdf';
+        $filename = $tipo.'_'.date('Y-m-d').'.pdf';
 
         return $pdf->download($filename);
     }

@@ -5,14 +5,15 @@ use App\Http\Controllers\AsistenciaController;
 use App\Http\Controllers\AsistenciaPublicController;
 use App\Http\Controllers\AuditController;
 use App\Http\Controllers\Auth\LoginController;
-use App\Http\Controllers\PasswordController;
 use App\Http\Controllers\CajaController;
+use App\Http\Controllers\CategoriaController;
 use App\Http\Controllers\ComisionController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\GastoController;
 use App\Http\Controllers\MembresiaController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\PagoController;
+use App\Http\Controllers\PasswordController;
 use App\Http\Controllers\ProductoController;
 use App\Http\Controllers\ReportController;
 use App\Http\Controllers\SedeController;
@@ -71,6 +72,10 @@ Route::middleware(['auth'])->group(function () {
 
     Route::middleware(['permission:productos.ver'])->group(function () {
         Route::resource('productos', ProductoController::class);
+        Route::get('/categorias', [CategoriaController::class, 'index'])->name('categorias.index');
+        Route::post('/categorias', [CategoriaController::class, 'store'])->name('categorias.store');
+        Route::put('/categorias/{categoria}', [CategoriaController::class, 'update'])->name('categorias.update');
+        Route::post('/categorias/{categoria}/toggle', [CategoriaController::class, 'toggle'])->name('categorias.toggle');
     });
 
     Route::middleware(['permission:ventas.ver'])->group(function () {
@@ -79,6 +84,8 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/ventas/datos/rapida', [VentaController::class, 'datosVentaRapida'])->name('ventas.datos.rapida');
         Route::get('/ventas/datos/producto', [VentaController::class, 'datosVentaProducto'])->name('ventas.datos.producto');
         Route::get('/ventas/datos/membresia', [VentaController::class, 'datosVentaMembresia'])->name('ventas.datos.membresia');
+        Route::get('/ventas/alumnos/buscar', [VentaController::class, 'buscarAlumnos'])->name('ventas.alumnos.buscar');
+        Route::post('/ventas/{venta}/anular', [VentaController::class, 'anular'])->name('ventas.anular');
     });
 
     Route::middleware(['permission:gastos.ver'])->group(function () {
@@ -92,6 +99,7 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/comisiones/mis-comisiones', [ComisionController::class, 'misComisiones'])->name('comisiones.mis-comisiones');
         Route::get('/comisiones/{comision}', [ComisionController::class, 'show'])->name('comisiones.show');
         Route::post('/comisiones/{comision}/liquidar', [ComisionController::class, 'liquidar'])->name('comisiones.liquidar');
+        Route::post('/comisiones/liquidar-seleccion', [ComisionController::class, 'liquidarSeleccion'])->name('comisiones.liquidar-seleccion');
     });
 
     Route::middleware(['permission:caja.ver'])->group(function () {
@@ -149,5 +157,5 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/perfil/cambiar-password', [PasswordController::class, 'showChangePassword'])->name('password.change.form');
     Route::put('/perfil/cambiar-password', [PasswordController::class, 'changePassword'])->name('password.change');
 
-    Route::get('/graficos', [DashboardController::class, 'graficos'])->name('graficos.index');
+    Route::redirect('/graficos', '/dashboard')->name('graficos.index');
 });

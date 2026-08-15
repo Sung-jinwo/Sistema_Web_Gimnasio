@@ -8,6 +8,7 @@ use Illuminate\View\Component;
 class NotificationDropdown extends Component
 {
     public int $totalNoLeidas;
+
     public $notificaciones;
 
     public function __construct()

@@ -105,8 +105,9 @@
                         required
                         class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
                         <option value="">Seleccione</option>
-                        <option value="1">Masculino</option>
-                        <option value="2">Femenino</option>
+                        @foreach($sexos as $sexo)
+                            <option value="{{ $sexo->id_sexo }}">{{ $sexo->sexo_nombre }}</option>
+                        @endforeach
                     </select>
                 </div>
 
@@ -131,9 +132,9 @@
                         required
                         class="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
                         <option value="">Seleccione una sede</option>
-                        <option value="1">Jose Crespo</option>
-                        <option value="2">Jamie blanco</option>
-                        <option value="3">Rio Seco</option>
+                        @foreach($sedes as $sede)
+                            <option value="{{ $sede->id_sede }}">{{ $sede->sede_nombre }}</option>
+                        @endforeach
                     </select>
                 </div>
             </div>
@@ -161,8 +162,8 @@
                         <option value="">Seleccione</option>
                         <option value="DNI">DNI</option>
                         <option value="CE">Carnet de Extranjería</option>
-                        <option value="Pasaporte">Pasaporte</option>
-                        <option value="Otro">Otro</option>
+                        <option value="PAS">Pasaporte</option>
+                        <option value="OTRO">Otro</option>
                     </select>
                 </div>
 

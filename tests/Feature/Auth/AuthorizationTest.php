@@ -14,7 +14,7 @@ class AuthorizationTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         $this->seed(\Database\Seeders\RolePermissionSeeder::class);
     }
 
@@ -104,5 +104,27 @@ class AuthorizationTest extends TestCase
     public function test_public_attendance_page_is_accessible_without_auth(): void
     {
         $this->get('/asistencia')->assertStatus(200);
+    }
+
+    public function test_admin_can_load_and_update_user_from_modal(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('Administrador');
+        $usuario = User::factory()->create();
+        $usuario->assignRole('Local');
+
+        $this->actingAs($admin)->getJson(route('usuarios.edit', $usuario))
+            ->assertOk()->assertJsonPath('data.id', $usuario->id);
+
+        $this->put(route('usuarios.update', $usuario), [
+            'name' => 'Usuario Actualizado',
+            'email' => $usuario->email,
+            'password' => '',
+            'role' => 'Local',
+            'fksede' => $usuario->fksede,
+            'telefono' => '999888777',
+        ])->assertRedirect(route('usuarios.index'));
+
+        $this->assertDatabaseHas('users', ['id' => $usuario->id, 'name' => 'Usuario Actualizado']);
     }
 }

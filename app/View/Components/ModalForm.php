@@ -70,7 +70,7 @@ class ModalForm extends Component
      */
     public function getSizeClass(): string
     {
-        return match($this->size) {
+        return match ($this->size) {
             'sm' => 'max-w-sm',
             'md' => 'max-w-md',
             'lg' => 'max-w-lg',
@@ -89,7 +89,7 @@ class ModalForm extends Component
      */
     public function getHeaderColorClass(): string
     {
-        return match($this->headerColor) {
+        return match ($this->headerColor) {
             'purple' => 'from-purple-600 to-purple-700',
             'blue' => 'from-blue-600 to-blue-700',
             'green' => 'from-green-600 to-green-700',

@@ -14,6 +14,15 @@
 
     <style>
         [x-cloak] { display: none !important; }
+        @media (max-width: 767px) {
+            main table.responsive-cards, main table.responsive-cards tbody { display: block; width: 100%; }
+            main table.responsive-cards thead { display: none; }
+            main table.responsive-cards tbody tr { display: block; margin: .75rem; padding: .75rem; border: 1px solid #e5e7eb; border-radius: .75rem; background: white; box-shadow: 0 1px 2px rgb(0 0 0 / .05); }
+            main table.responsive-cards tbody td { display: flex !important; justify-content: space-between; gap: 1rem; width: 100%; padding: .5rem !important; text-align: right !important; white-space: normal !important; }
+            main table.responsive-cards tbody td::before { content: attr(data-label); color: #6b7280; font-weight: 600; text-align: left; }
+            main table.responsive-cards tbody td[colspan] { display: block !important; text-align: center !important; }
+            main table.responsive-cards tbody td[colspan]::before { display: none; }
+        }
     </style>
     @stack('styles')
     
@@ -64,6 +73,16 @@
         </main>
     </div>
     @stack('scripts')
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            document.querySelectorAll('main table').forEach(table => {
+                const labels = [...table.querySelectorAll('thead th')].map(th => th.textContent.trim());
+                if (!labels.length) return;
+                table.classList.add('responsive-cards');
+                table.querySelectorAll('tbody tr').forEach(row => [...row.children].forEach((cell, index) => cell.dataset.label = labels[index] || ''));
+            });
+        });
+    </script>
 
 </body>
 </html>

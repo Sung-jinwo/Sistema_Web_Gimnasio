@@ -12,7 +12,7 @@ class PenaltyServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->penaltyService = new PenaltyService();
+        $this->penaltyService = new PenaltyService;
     }
 
     public function test_no_penalty_within_tolerance_period(): void

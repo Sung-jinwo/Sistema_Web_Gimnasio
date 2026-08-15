@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\AlumnoRequest;
 use App\Models\Alumno;
 use App\Models\Sede;
+use App\Models\Sexo;
 use App\Services\AlumnoService;
 use App\Services\AuditService;
 use Illuminate\Http\Request;
@@ -12,6 +13,7 @@ use Illuminate\Http\Request;
 class AlumnoController extends Controller
 {
     protected AlumnoService $alumnoService;
+
     protected AuditService $auditService;
 
     public function __construct(AlumnoService $alumnoService, AuditService $auditService)
@@ -32,12 +34,13 @@ class AlumnoController extends Controller
 
         $alumnos = $this->alumnoService->obtenerAlumnosConFiltros($filtros, auth()->user());
         $sedes = Sede::where('sede_estado', true)->orderBy('sede_nombre')->get();
+        $sexos = Sexo::orderBy('sexo_nombre')->get();
 
         if ($request->expectsJson()) {
             return response()->json($alumnos);
         }
 
-        return view('alumnos.index', compact('alumnos', 'sedes'));
+        return view('alumnos.index', compact('alumnos', 'sedes', 'sexos'));
     }
 
     public function store(AlumnoRequest $request)
@@ -46,7 +49,7 @@ class AlumnoController extends Controller
 
         $validatedData = $request->validated();
         $validatedData['fkuser'] = auth()->id();
-        $validatedData['alum_estado'] = $request->has('alum_estado') ? true : false;
+        $validatedData['alum_estado'] = true;
 
         $alumno = Alumno::create($validatedData);
 
@@ -106,11 +109,13 @@ class AlumnoController extends Controller
 
         $validatedData = $request->validated();
 
-        if (!isset($validatedData['fkuser'])) {
+        if (! isset($validatedData['fkuser'])) {
             $validatedData['fkuser'] = $alumno->fkuser ?? auth()->id();
         }
 
-        $validatedData['alum_estado'] = $request->has('alum_estado') ? true : false;
+        if ($request->exists('alum_estado')) {
+            $validatedData['alum_estado'] = $request->boolean('alum_estado');
+        }
 
         $alumno->update($validatedData);
 

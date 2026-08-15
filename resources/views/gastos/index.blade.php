@@ -1,11 +1,13 @@
 @extends('layouts.app')
 
 @section('content')
-<div x-data="{ showRegistrarModal: false, showRechazarModal: false, gastoIdRechazar: null }" class="container mx-auto px-4 py-6">
+@section('page-title','Gastos')
+@section('page-subtitle','Registro, aprobación y control de egresos')
+<div id="gastosRoot" x-data="{ showRegistrarModal: false, showRechazarModal: false, gastoIdRechazar: null }" class="w-full space-y-5">
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
         <h1 class="text-2xl font-bold text-gray-900">Gastos</h1>
         @can('create', App\Models\Gasto::class)
-        <button type="button" @click="showRegistrarModal = true" class="inline-flex items-center px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition">
+        <button type="button" @click="showRegistrarModal = true; $nextTick(()=>{const f=document.getElementById('gastoForm');f.reset();f.action='{{ route('gastos.store') }}';f.querySelector('[name=_method]')?.remove()})" class="inline-flex items-center px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition">
             <i class="fas fa-plus mr-2"></i> Registrar Gasto
         </button>
         @endcan
@@ -102,7 +104,7 @@
 
     @can('create', App\Models\Gasto::class)
     <x-modal-form show="showRegistrarModal" title="Registrar Gasto" subtitle="Complete los datos del gasto" icon='<i class="fas fa-receipt text-white"></i>' size="md" headerColor="red">
-        <form method="POST" action="{{ route('gastos.store') }}" class="space-y-4">
+        <form id="gastoForm" method="POST" action="{{ route('gastos.store') }}" class="space-y-4">
             @csrf
             <div>
                 <label for="gas_concepto" class="block text-sm font-medium text-gray-700 mb-1">Concepto <span class="text-red-500">*</span></label>
@@ -171,7 +173,13 @@
 @push('scripts')
 <script>
 function editGasto(id) {
-    window.location.href = `/gastos/${id}/edit`;
+    fetch(`/gastos/${id}/edit`, {headers:{Accept:'application/json','X-Requested-With':'XMLHttpRequest'}})
+      .then(r=>r.json()).then(g=>{
+        const form=document.getElementById('gastoForm'); form.action=`/gastos/${id}`;
+        let method=form.querySelector('[name="_method"]'); if(!method){method=document.createElement('input');method.type='hidden';method.name='_method';form.appendChild(method)} method.value='PUT';
+        ['gas_concepto','fkcategoria','gas_monto','gas_fecha','gas_observacion'].forEach(k=>{const el=document.getElementById(k);if(el)el.value=g[k]??''});
+        Alpine.$data(document.getElementById('gastosRoot')).showRegistrarModal=true;
+      });
 }
 </script>
 @endpush

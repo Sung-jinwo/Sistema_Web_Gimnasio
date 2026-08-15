@@ -18,9 +18,9 @@ class VentaTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         $this->seed(\Database\Seeders\RolePermissionSeeder::class);
-        
+
         MetodoPago::firstOrCreate(['id_metod' => 1], ['metod_nombre' => 'Efectivo']);
         MetodoPago::firstOrCreate(['id_metod' => 2], ['metod_nombre' => 'Tarjeta']);
     }
@@ -229,5 +229,29 @@ class VentaTest extends TestCase
         $response = $this->actingAs($admin)->get('/ventas?tipo_venta=producto');
 
         $response->assertStatus(200);
+    }
+
+    public function test_cart_sale_decrements_each_product_and_can_be_audited_when_cancelled(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('Administrador');
+        $alumno = Alumno::factory()->create(['fksede' => $admin->fksede]);
+        $a = Producto::factory()->create(['fksede' => $admin->fksede, 'prod_cantidad' => 10, 'prod_precio' => 20]);
+        $b = Producto::factory()->create(['fksede' => $admin->fksede, 'prod_cantidad' => 5, 'prod_precio' => 15]);
+
+        $this->actingAs($admin)->post('/ventas', [
+            'tipo_venta' => 'producto', 'fkalum' => $alumno->id_alumno, 'fkmetodo' => 1, 'estado_venta' => 'completado',
+            'detalles' => [['fkproducto' => $a->id_productos, 'cantidad' => 2], ['fkproducto' => $b->id_productos, 'cantidad' => 1]],
+        ])->assertRedirect('/ventas');
+
+        $venta = Venta::latest('id_venta')->first();
+        $this->assertEquals(55, $venta->venta_total);
+        $this->assertEquals(8, $a->fresh()->prod_cantidad);
+        $this->assertEquals(4, $b->fresh()->prod_cantidad);
+
+        $this->post(route('ventas.anular', $venta), ['motivo_anulacion' => 'Registro duplicado'])->assertRedirect('/ventas');
+        $this->assertEquals('anulado', $venta->fresh()->estado_venta);
+        $this->assertEquals(10, $a->fresh()->prod_cantidad);
+        $this->assertDatabaseHas('audit_logs', ['modelo_id' => $venta->id_venta, 'modulo' => 'ventas']);
     }
 }

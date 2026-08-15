@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\Alumno;
+use App\Models\Asistencia;
 use App\Models\Caja;
 use App\Models\Categoria;
 use App\Models\CategoriaGasto;
@@ -21,7 +22,6 @@ use App\Models\Producto;
 use App\Models\Sede;
 use App\Models\User;
 use App\Models\Venta;
-use App\Models\Asistencia;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
@@ -354,9 +354,9 @@ class DatabaseSeeder extends Seeder
 
         $pagos = [];
         foreach ($pagosData as $i => $data) {
-            $key = 'SEED-PAGO-' . ($i + 1);
+            $key = 'SEED-PAGO-'.($i + 1);
             $pago = Pago::where('observacion', $key)->first();
-            if (!$pago) {
+            if (! $pago) {
                 $data['observacion'] = $key;
                 $pago = Pago::create($data);
             }
@@ -488,7 +488,7 @@ class DatabaseSeeder extends Seeder
         foreach ($ventasData as $data) {
             $key = $data['observacion'];
             $venta = Venta::where('observacion', 'like', 'SEED-VENTA-%')->where('observacion', $key)->first();
-            if (!$venta) {
+            if (! $venta) {
                 $venta = Venta::create($data);
             }
             $ventas[] = $venta;

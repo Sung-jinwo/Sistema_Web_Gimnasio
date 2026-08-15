@@ -16,9 +16,9 @@ class AlumnoTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        
+
         $this->seed(\Database\Seeders\RolePermissionSeeder::class);
-        
+
         Sexo::firstOrCreate(['id_sexo' => 1], ['sexo_nombre' => 'Masculino']);
         Sexo::firstOrCreate(['id_sexo' => 2], ['sexo_nombre' => 'Femenino']);
     }
@@ -81,6 +81,30 @@ class AlumnoTest extends TestCase
 
         $response->assertRedirect('/alumnos');
         $this->assertDatabaseHas('alumno', ['alum_codigo' => 'ALU001']);
+    }
+
+    public function test_modal_can_create_student_without_server_owned_fields(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('Administrador');
+
+        $response = $this->actingAs($admin)->post('/alumnos', [
+            'alum_nombre' => 'Alumno',
+            'alum_apellido' => 'Desde Modal',
+            'alum_numDoc' => '87654321',
+            'alum_documento' => 'DNI',
+            'fksexo' => 1,
+            'fecha_nac' => '2000-01-15',
+            'alum_telefo' => '987654321',
+            'fksede' => $admin->fksede,
+        ]);
+
+        $response->assertRedirect('/alumnos')->assertSessionHasNoErrors();
+        $this->assertDatabaseHas('alumno', [
+            'alum_numDoc' => '87654321',
+            'fkuser' => $admin->id,
+            'alum_estado' => true,
+        ]);
     }
 
     public function test_cannot_create_student_with_duplicate_dni(): void

@@ -56,7 +56,7 @@ class Button extends Component
      */
     public function getVariantClasses(): string
     {
-        return match($this->variant) {
+        return match ($this->variant) {
             'primary' => 'bg-purple-600 text-white hover:bg-purple-700 focus:ring-purple-500',
             'secondary' => 'bg-gray-200 text-gray-900 hover:bg-gray-300 focus:ring-gray-400',
             'success' => 'bg-green-600 text-white hover:bg-green-700 focus:ring-green-500',
@@ -74,7 +74,7 @@ class Button extends Component
      */
     public function getSizeClasses(): string
     {
-        return match($this->size) {
+        return match ($this->size) {
             'xs' => 'px-2 py-1 text-xs',
             'sm' => 'px-3 py-1.5 text-sm',
             'md' => 'px-4 py-2 text-sm',

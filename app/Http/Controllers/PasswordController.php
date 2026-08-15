@@ -116,7 +116,7 @@ class PasswordController extends Controller
 
         $user = $request->user();
 
-        if (!Hash::check($request->current_password, $user->password)) {
+        if (! Hash::check($request->current_password, $user->password)) {
             if ($request->expectsJson()) {
                 return response()->json(['message' => 'La contraseña actual es incorrecta'], 422);
             }

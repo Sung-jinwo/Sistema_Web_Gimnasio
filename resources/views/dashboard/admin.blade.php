@@ -1,11 +1,10 @@
 @extends('layouts.app')
 
+@section('page-title','Dashboard administrativo')
+@section('page-subtitle','Resumen financiero y operativo de todas las sedes')
+
 @section('content')
 <div class="container mx-auto px-4 py-6">
-    <div class="mb-6">
-        <h1 class="text-2xl font-bold text-gray-900">Dashboard Administrativo</h1>
-        <p class="text-gray-600">Resumen general del sistema</p>
-    </div>
 
     {{-- Métricas principales --}}
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">

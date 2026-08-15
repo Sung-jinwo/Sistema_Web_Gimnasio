@@ -16,13 +16,14 @@ class GastoController extends Controller
     {
         $this->auditService = $auditService;
     }
+
     public function index(Request $request)
     {
         $this->authorize('viewAny', Gasto::class);
 
         $query = Gasto::with(['categoria', 'user', 'sede', 'aprobadoPor']);
 
-        if (!auth()->user()->hasRole('Administrador')) {
+        if (! auth()->user()->hasRole('Administrador')) {
             $query->where('fksede', auth()->user()->fksede);
         }
 
@@ -103,7 +104,7 @@ class GastoController extends Controller
 
         $data = $request->validated();
 
-        if (!isset($data['fkuser'])) {
+        if (! isset($data['fkuser'])) {
             $data['fkuser'] = $gasto->fkuser ?? auth()->id();
         }
 

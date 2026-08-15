@@ -26,7 +26,7 @@ class PagoController extends Controller
 
         $query = Pago::with(['alumno', 'membresia', 'metodo', 'user', 'sede', 'cuotas']);
 
-        if (!auth()->user()->hasRole('Administrador')) {
+        if (! auth()->user()->hasRole('Administrador')) {
             $query->where('fksede', auth()->user()->fksede);
         }
 
@@ -112,7 +112,7 @@ class PagoController extends Controller
 
         $data = $request->validated();
 
-        if (!isset($data['fkuser'])) {
+        if (! isset($data['fkuser'])) {
             $data['fkuser'] = $pago->fkuser ?? auth()->id();
         }
 
@@ -159,7 +159,7 @@ class PagoController extends Controller
         $query = Pago::with(['alumno', 'membresia', 'metodo', 'user', 'sede'])
             ->where('estado_pago', 'completo');
 
-        if (!auth()->user()->hasRole('Administrador')) {
+        if (! auth()->user()->hasRole('Administrador')) {
             $query->where('fksede', auth()->user()->fksede);
         }
 
@@ -179,7 +179,7 @@ class PagoController extends Controller
         $query = Pago::with(['alumno', 'membresia', 'metodo', 'user', 'sede', 'cuotas'])
             ->whereIn('estado_pago', ['incompleto', 'reservado']);
 
-        if (!auth()->user()->hasRole('Administrador')) {
+        if (! auth()->user()->hasRole('Administrador')) {
             $query->where('fksede', auth()->user()->fksede);
         }
 
@@ -241,7 +241,7 @@ class PagoController extends Controller
         }
 
         $request->validate([
-            'monto' => 'required|numeric|min:0.01|max:' . $cuota->saldo,
+            'monto' => 'required|numeric|min:0.01|max:'.$cuota->saldo,
         ]);
 
         $cuotaActualizada = $this->paymentService->aplicarPagoACuota($cuotaId, $request->monto);
@@ -265,10 +265,10 @@ class PagoController extends Controller
         $query = Cuota::with(['pago.alumno', 'pago.membresia', 'venta.alumno'])
             ->where(function ($q) {
                 $q->where('estado', 'vencida')
-                  ->orWhere(function ($q2) {
-                      $q2->where('estado', 'pendiente')
-                         ->where('fecha_acordada', '<', now()->format('Y-m-d'));
-                  });
+                    ->orWhere(function ($q2) {
+                        $q2->where('estado', 'pendiente')
+                            ->where('fecha_acordada', '<', now()->format('Y-m-d'));
+                    });
             });
 
         $cuotas = $query->orderBy('fecha_acordada')->paginate(15);

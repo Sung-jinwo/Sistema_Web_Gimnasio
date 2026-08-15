@@ -28,7 +28,7 @@ class CajaPolicy
 
     public function cerrar(User $user, Caja $caja): bool
     {
-        if (!$user->hasRole(['Administrador', 'Local'])) {
+        if (! $user->hasRole(['Administrador', 'Local'])) {
             return false;
         }
 

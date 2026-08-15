@@ -2,7 +2,6 @@
 
 namespace App\Services;
 
-use App\Models\Comision;
 use App\Models\DetalleVenta;
 use App\Models\Membresia;
 use App\Models\Producto;
@@ -12,6 +11,7 @@ use Illuminate\Support\Facades\DB;
 class SaleService
 {
     protected MembresiaService $membresiaService;
+
     protected CommissionService $commissionService;
 
     public function __construct(MembresiaService $membresiaService, CommissionService $commissionService)
@@ -23,37 +23,41 @@ class SaleService
     public function crearVentaProducto(array $datos): Venta
     {
         return DB::transaction(function () use ($datos) {
-            $producto = Producto::findOrFail($datos['fkproducto']);
-            $cantidad = $datos['cantidad'] ?? 1;
+            $items = $datos['detalles'] ?? [['fkproducto' => $datos['fkproducto'], 'cantidad' => $datos['cantidad'] ?? 1]];
+            $productos = collect($items)->map(function ($item) {
+                $producto = Producto::lockForUpdate()->findOrFail($item['fkproducto']);
+                $this->validarStockDisponible($producto, (int) $item['cantidad']);
 
-            $this->validarStockDisponible($producto, $cantidad);
+                return ['producto' => $producto, 'cantidad' => (int) $item['cantidad']];
+            });
+            $total = $productos->sum(fn ($item) => $item['producto']->prod_precio * $item['cantidad']);
+            $pagado = min((float) ($datos['monto_pagado'] ?? $total), $total);
+            $saldo = max(0, $total - $pagado);
+            if ($saldo > 0 && empty($datos['fecha_acordada'])) {
+                throw new \InvalidArgumentException('Debe indicar una fecha acordada cuando el pago es parcial o pendiente.');
+            }
 
             $venta = Venta::create([
                 'fkalum' => $datos['fkalum'],
                 'fkusers' => $datos['fkusers'],
                 'fksede' => $datos['fksede'],
                 'fkmetodo' => $datos['fkmetodo'],
-                'fkproducto' => $producto->id_productos,
-                'tipo_venta' => 'producto',
+                'fkproducto' => $productos->first()['producto']->id_productos,
+                'tipo_venta' => $datos['tipo_venta'] ?? 'producto',
                 'estado_venta' => $datos['estado_venta'] ?? 'completado',
-                'estado_pago' => $datos['estado_pago'] ?? 'pagado',
-                'venta_total' => $producto->prod_precio * $cantidad,
+                'estado_pago' => $saldo <= 0 ? 'pagado' : ($pagado > 0 ? 'parcial' : 'pendiente'),
+                'venta_total' => $total,
                 'venta_descuento' => $datos['venta_descuento'] ?? 0,
-                'monto_pagado' => $datos['monto_pagado'] ?? ($producto->prod_precio * $cantidad),
-                'saldo' => $datos['saldo'] ?? 0,
-                'fecha_acordada' => $datos['fecha_acordada'] ?? null,
+                'monto_pagado' => $pagado,
+                'saldo' => $saldo,
+                'fecha_acordada' => $saldo > 0 ? ($datos['fecha_acordada'] ?? null) : null,
                 'observacion' => $datos['observacion'] ?? null,
             ]);
 
-            DetalleVenta::create([
-                'fkventa' => $venta->id_venta,
-                'fkproducto' => $producto->id_productos,
-                'cantidad' => $cantidad,
-                'precio_unitario' => $producto->prod_precio,
-                'subtotal' => $producto->prod_precio * $cantidad,
-            ]);
-
-            $this->actualizarStock($producto->id_productos, $cantidad);
+            foreach ($productos as $item) {
+                DetalleVenta::create(['fkventa' => $venta->id_venta, 'fkproducto' => $item['producto']->id_productos, 'cantidad' => $item['cantidad'], 'precio_unitario' => $item['producto']->prod_precio, 'subtotal' => $item['producto']->prod_precio * $item['cantidad']]);
+                $this->actualizarStock($item['producto']->id_productos, $item['cantidad']);
+            }
 
             $this->calcularComision($venta->id_venta, $venta->fkusers, $datos['fecha_acordada'] ?? null);
 
@@ -65,6 +69,11 @@ class SaleService
     {
         return DB::transaction(function () use ($datos) {
             $membresia = Membresia::findOrFail($datos['fkmem']);
+            $pagado = min((float) ($datos['monto_pagado'] ?? $membresia->mem_precio), (float) $membresia->mem_precio);
+            $saldo = max(0, (float) $membresia->mem_precio - $pagado);
+            if ($saldo > 0 && empty($datos['fecha_acordada'])) {
+                throw new \InvalidArgumentException('Debe indicar una fecha acordada cuando el pago es parcial o pendiente.');
+            }
 
             $venta = Venta::create([
                 'fkalum' => $datos['fkalum'],
@@ -73,19 +82,19 @@ class SaleService
                 'fkmetodo' => $datos['fkmetodo'],
                 'tipo_venta' => 'membresia',
                 'estado_venta' => $datos['estado_venta'] ?? 'completado',
-                'estado_pago' => $datos['estado_pago'] ?? 'pagado',
+                'estado_pago' => $saldo <= 0 ? 'pagado' : ($pagado > 0 ? 'parcial' : 'pendiente'),
                 'venta_total' => $membresia->mem_precio,
                 'venta_descuento' => $datos['venta_descuento'] ?? 0,
-                'monto_pagado' => $datos['monto_pagado'] ?? $membresia->mem_precio,
-                'saldo' => $datos['saldo'] ?? 0,
-                'fecha_acordada' => $datos['fecha_acordada'] ?? null,
+                'monto_pagado' => $pagado,
+                'saldo' => $saldo,
+                'fecha_acordada' => $saldo > 0 ? ($datos['fecha_acordada'] ?? null) : null,
                 'observacion' => $datos['observacion'] ?? null,
             ]);
 
             $this->membresiaService->asignarMembresia(
                 $datos['fkalum'],
                 $membresia->id_mem,
-                $datos['modalidad'] ?? 'por_meses',
+                $membresia->modalidad,
                 $datos['fecha_inicio'] ?? now()->format('Y-m-d'),
                 $datos['fecha_fin'] ?? null
             );
@@ -98,42 +107,10 @@ class SaleService
 
     public function crearVentaRapida(array $datos): Venta
     {
-        return DB::transaction(function () use ($datos) {
-            $producto = Producto::findOrFail($datos['fkproducto']);
-            $cantidad = $datos['cantidad'] ?? 1;
+        $datos['fkalum'] = null;
+        $datos['estado_venta'] = 'completado';
 
-            $this->validarStockDisponible($producto, $cantidad);
-
-            $venta = Venta::create([
-                'fkalum' => null,
-                'fkusers' => $datos['fkusers'],
-                'fksede' => $datos['fksede'],
-                'fkmetodo' => $datos['fkmetodo'],
-                'fkproducto' => $producto->id_productos,
-                'tipo_venta' => 'rapida',
-                'estado_venta' => 'completado',
-                'estado_pago' => 'pagado',
-                'venta_total' => $producto->prod_precio * $cantidad,
-                'venta_descuento' => 0,
-                'monto_pagado' => $producto->prod_precio * $cantidad,
-                'saldo' => 0,
-                'observacion' => $datos['observacion'] ?? null,
-            ]);
-
-            DetalleVenta::create([
-                'fkventa' => $venta->id_venta,
-                'fkproducto' => $producto->id_productos,
-                'cantidad' => $cantidad,
-                'precio_unitario' => $producto->prod_precio,
-                'subtotal' => $producto->prod_precio * $cantidad,
-            ]);
-
-            $this->actualizarStock($producto->id_productos, $cantidad);
-
-            $this->calcularComision($venta->id_venta, $venta->fkusers);
-
-            return $venta->load('detalles');
-        });
+        return $this->crearVentaProducto($datos + ['tipo_venta' => 'rapida']);
     }
 
     public function actualizarStock(int $productoId, int $cantidad): void
@@ -142,7 +119,7 @@ class SaleService
         $nuevoStock = $producto->prod_cantidad - $cantidad;
 
         if ($nuevoStock < 0) {
-            throw new \Exception('Stock insuficiente para el producto: ' . $producto->prod_nombre);
+            throw new \Exception('Stock insuficiente para el producto: '.$producto->prod_nombre);
         }
 
         $producto->prod_cantidad = $nuevoStock;
@@ -161,7 +138,7 @@ class SaleService
     protected function validarStockDisponible(Producto $producto, int $cantidad): void
     {
         if ($producto->prod_cantidad < $cantidad) {
-            throw new \Exception('Stock insuficiente para el producto: ' . $producto->prod_nombre . '. Stock disponible: ' . $producto->prod_cantidad);
+            throw new \Exception('Stock insuficiente para el producto: '.$producto->prod_nombre.'. Stock disponible: '.$producto->prod_cantidad);
         }
     }
 }

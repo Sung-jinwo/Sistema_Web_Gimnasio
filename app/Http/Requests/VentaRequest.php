@@ -17,27 +17,30 @@ class VentaRequest extends FormRequest
             'tipo_venta' => 'required|in:membresia,producto,rapida',
             'fkmetodo' => 'required|exists:metodos_pago,id_metod',
             'venta_descuento' => 'nullable|numeric|min:0',
-            'estado_venta' => 'required|in:completado,reservado,incompleto',
-            'estado_pago' => 'required|in:pagado,parcial,pendiente',
+            'estado_venta' => 'nullable|in:completado,reservado',
+            'estado_pago' => 'nullable|in:pagado,parcial,pendiente',
             'monto_pagado' => 'nullable|numeric|min:0',
             'fecha_acordada' => 'nullable|date|after_or_equal:today',
             'venta_fecha' => 'nullable|date',
             'observacion' => 'nullable|string',
+            'cantidad' => 'nullable|integer|min:1',
         ];
 
         if ($this->input('tipo_venta') === 'rapida') {
-            $rules['fkproducto'] = 'required|exists:productos,id_productos';
-            $rules['cantidad'] = 'required|integer|min:1';
+            $rules['detalles'] = 'required_without:fkproducto|array|min:1';
+            $rules['detalles.*.fkproducto'] = 'required|exists:productos,id_productos';
+            $rules['detalles.*.cantidad'] = 'required|integer|min:1';
+            $rules['fkproducto'] = 'required_without:detalles|exists:productos,id_productos';
         } elseif ($this->input('tipo_venta') === 'producto') {
             $rules['fkalum'] = 'required|exists:alumno,id_alumno';
-            $rules['fkproducto'] = 'required|exists:productos,id_productos';
-            $rules['cantidad'] = 'required|integer|min:1';
+            $rules['detalles'] = 'required_without:fkproducto|array|min:1';
+            $rules['detalles.*.fkproducto'] = 'required|exists:productos,id_productos';
+            $rules['detalles.*.cantidad'] = 'required|integer|min:1';
+            $rules['fkproducto'] = 'required_without:detalles|exists:productos,id_productos';
         } elseif ($this->input('tipo_venta') === 'membresia') {
             $rules['fkalum'] = 'required|exists:alumno,id_alumno';
             $rules['fkmem'] = 'required|exists:membresias,id_mem';
-            $rules['modalidad'] = 'required|in:por_meses,por_fechas';
-            $rules['fecha_inicio'] = 'required_if:modalidad,por_meses|nullable|date';
-            $rules['fecha_fin'] = 'required_if:modalidad,por_fechas|nullable|date|after_or_equal:fecha_inicio';
+            $rules['fecha_inicio'] = 'nullable|date';
         }
 
         return $rules;

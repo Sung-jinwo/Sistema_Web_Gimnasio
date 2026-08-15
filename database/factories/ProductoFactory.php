@@ -12,7 +12,7 @@ class ProductoFactory extends Factory
     public function definition(): array
     {
         return [
-            'prod_nombre' => $this->faker->word . ' ' . $this->faker->colorName,
+            'prod_nombre' => $this->faker->word.' '.$this->faker->colorName,
             'prod_precio' => $this->faker->randomFloat(2, 10, 500),
             'prod_cantidad' => $this->faker->numberBetween(0, 100),
             'prod_stock_minimo' => 5,

@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\Alumno;
-use Illuminate\Database\Eloquent\Collection;
 
 class AlumnoService
 {
@@ -25,7 +24,7 @@ class AlumnoService
             $query->where('id_alumno', '!=', $id);
         }
 
-        return !$query->exists();
+        return ! $query->exists();
     }
 
     public function validarCodigoUnico(string $codigo, ?int $id = null): bool
@@ -36,7 +35,7 @@ class AlumnoService
             $query->where('id_alumno', '!=', $id);
         }
 
-        return !$query->exists();
+        return ! $query->exists();
     }
 
     public function obtenerFichaCompleta(int $alumnoId): array
@@ -103,21 +102,21 @@ class AlumnoService
 
         $query = $this->scopePorSede($query, $usuario->fksede, $usuario);
 
-        if (!empty($filtros['search'])) {
+        if (! empty($filtros['search'])) {
             $search = $filtros['search'];
             $query->where(function ($q) use ($search) {
                 $q->where('alum_nombre', 'like', "%{$search}%")
-                  ->orWhere('alum_apellido', 'like', "%{$search}%")
-                  ->orWhere('alum_numDoc', 'like', "%{$search}%")
-                  ->orWhere('alum_codigo', 'like', "%{$search}%");
+                    ->orWhere('alum_apellido', 'like', "%{$search}%")
+                    ->orWhere('alum_numDoc', 'like', "%{$search}%")
+                    ->orWhere('alum_codigo', 'like', "%{$search}%");
             });
         }
 
-        if (!empty($filtros['sede'])) {
+        if (! empty($filtros['sede'])) {
             $query->where('fksede', $filtros['sede']);
         }
 
-        if (!empty($filtros['estado'])) {
+        if (! empty($filtros['estado'])) {
             $query->where('alum_estado', $filtros['estado']);
         }
 

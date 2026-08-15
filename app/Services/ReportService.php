@@ -5,10 +5,8 @@ namespace App\Services;
 use App\Models\Comision;
 use App\Models\Gasto;
 use App\Models\MembresiaAlumno;
-use App\Models\Pago;
 use App\Models\Producto;
 use App\Models\Venta;
-use Carbon\Carbon;
 
 class ReportService
 {
@@ -39,7 +37,7 @@ class ReportService
             'total' => $ventas->sum('venta_total'),
             'cantidad' => $ventas->count(),
             'por_tipo' => $ventas->groupBy('tipo_venta')->map->sum('venta_total'),
-            'por_metodo' => $ventas->groupBy(fn($v) => $v->metodo->metod_nombre ?? 'Sin método')->map->sum('venta_total'),
+            'por_metodo' => $ventas->groupBy(fn ($v) => $v->metodo->metod_nombre ?? 'Sin método')->map->sum('venta_total'),
         ];
     }
 
@@ -57,14 +55,14 @@ class ReportService
         } elseif ($estado === 'vencida') {
             $query->where(function ($q) use ($hoy) {
                 $q->where('estado', 'vencida')
-                  ->orWhere(function ($q2) use ($hoy) {
-                      $q2->where('estado', 'activa')->where('fecha_fin', '<', $hoy);
-                  });
+                    ->orWhere(function ($q2) use ($hoy) {
+                        $q2->where('estado', 'activa')->where('fecha_fin', '<', $hoy);
+                    });
             });
         }
 
         if ($sedeId) {
-            $query->whereHas('alumno', fn($q) => $q->where('fksede', $sedeId));
+            $query->whereHas('alumno', fn ($q) => $q->where('fksede', $sedeId));
         }
 
         $membresias = $query->orderBy('fecha_fin')->get();
@@ -91,8 +89,8 @@ class ReportService
         return [
             'productos' => $productos,
             'total_stock' => $productos->sum('prod_cantidad'),
-            'valor_total' => $productos->sum(fn($p) => $p->prod_cantidad * $p->prod_precio),
-            'stock_critico' => $productos->filter(fn($p) => $p->prod_cantidad <= $p->prod_stock_minimo)->count(),
+            'valor_total' => $productos->sum(fn ($p) => $p->prod_cantidad * $p->prod_precio),
+            'stock_critico' => $productos->filter(fn ($p) => $p->prod_cantidad <= $p->prod_stock_minimo)->count(),
         ];
     }
 
@@ -118,7 +116,7 @@ class ReportService
             'total_penalizaciones' => $comisiones->sum('penalizacion'),
             'total_final' => $comisiones->sum('comision_final'),
             'cantidad' => $comisiones->count(),
-            'por_empleado' => $comisiones->groupBy(fn($c) => $c->usuario->name ?? 'N/A')->map(fn($group) => [
+            'por_empleado' => $comisiones->groupBy(fn ($c) => $c->usuario->name ?? 'N/A')->map(fn ($group) => [
                 'base' => $group->sum('comision_base'),
                 'penalizacion' => $group->sum('penalizacion'),
                 'final' => $group->sum('comision_final'),
@@ -152,7 +150,7 @@ class ReportService
             'gastos' => $gastos,
             'total' => $gastos->sum('gas_monto'),
             'cantidad' => $gastos->count(),
-            'por_categoria' => $gastos->groupBy(fn($g) => $g->categoria->cat_nombre ?? 'Sin categoría')->map->sum('gas_monto'),
+            'por_categoria' => $gastos->groupBy(fn ($g) => $g->categoria->cat_nombre ?? 'Sin categoría')->map->sum('gas_monto'),
         ];
     }
 
@@ -179,7 +177,7 @@ class ReportService
             'cajas' => $cajas,
             'cantidad' => $cajas->count(),
             'total_diferencia' => $cajas->sum('diferencia'),
-            'con_diferencia' => $cajas->filter(fn($c) => $c->diferencia && $c->diferencia != 0)->count(),
+            'con_diferencia' => $cajas->filter(fn ($c) => $c->diferencia && $c->diferencia != 0)->count(),
         ];
     }
 
@@ -194,7 +192,7 @@ class ReportService
             $query->whereYear('fecha_fin', $anio);
         }
         if ($sedeId) {
-            $query->whereHas('alumno', fn($q) => $q->where('fksede', $sedeId));
+            $query->whereHas('alumno', fn ($q) => $q->where('fksede', $sedeId));
         }
 
         $hoy = now()->format('Y-m-d');
@@ -205,9 +203,9 @@ class ReportService
         } elseif ($estado === 'vencido') {
             $query->where(function ($q) use ($hoy) {
                 $q->where('estado', 'vencida')
-                  ->orWhere(function ($q2) use ($hoy) {
-                      $q2->where('estado', 'activa')->where('fecha_fin', '<', $hoy);
-                  });
+                    ->orWhere(function ($q2) use ($hoy) {
+                        $q2->where('estado', 'activa')->where('fecha_fin', '<', $hoy);
+                    });
             });
         }
 

@@ -7,7 +7,6 @@ use App\Models\Membresia;
 use App\Models\MembresiaAlumno;
 use App\Models\Producto;
 use App\Models\Sede;
-use App\Models\User;
 use App\Models\Venta;
 use App\Services\CommissionService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -50,7 +49,7 @@ class CommissionServiceTest extends TestCase
         $sede = Sede::factory()->create();
         $alumno = Alumno::factory()->create(['fksede' => $sede->id_sede]);
         $membresia = Membresia::factory()->create(['comision' => 15.00]);
-        
+
         MembresiaAlumno::create([
             'fkalumno' => $alumno->id_alumno,
             'fkmem' => $membresia->id_mem,
@@ -123,11 +122,12 @@ class CommissionServiceTest extends TestCase
     {
         $venta1 = Venta::factory()->create();
         $venta2 = Venta::factory()->create();
+        $caja = \App\Models\Caja::create(['fksede' => $venta1->fksede, 'fkuser' => $venta1->fkusers, 'fecha_apertura' => now(), 'monto_inicial' => 0, 'estado' => 'abierta']);
 
         \App\Models\Comision::create([
             'fkventa' => $venta1->id_venta,
-            'fkcaja' => 1,
-            'fkuser' => 1,
+            'fkcaja' => $caja->id_caja,
+            'fkuser' => $venta1->fkusers,
             'comision_base' => 10.00,
             'penalizacion' => 0,
             'comision_final' => 10.00,
@@ -137,8 +137,8 @@ class CommissionServiceTest extends TestCase
 
         \App\Models\Comision::create([
             'fkventa' => $venta2->id_venta,
-            'fkcaja' => 1,
-            'fkuser' => 2,
+            'fkcaja' => $caja->id_caja,
+            'fkuser' => $venta2->fkusers,
             'comision_base' => 20.00,
             'penalizacion' => 5.00,
             'comision_final' => 15.00,
@@ -146,7 +146,7 @@ class CommissionServiceTest extends TestCase
             'estado' => 'pendiente',
         ]);
 
-        $resultado = $this->commissionService->obtenerComisionesPorCaja(1);
+        $resultado = $this->commissionService->obtenerComisionesPorCaja($caja->id_caja);
 
         $this->assertEquals(2, $resultado['cantidad']);
         $this->assertEquals(30.00, $resultado['total_base']);

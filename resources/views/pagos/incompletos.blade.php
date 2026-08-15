@@ -1,6 +1,8 @@
 @extends('layouts.app')
 
 @section('content')
+@section('page-title','Saldos pendientes')
+@section('page-subtitle','Pagos parciales, fechas acordadas y cuotas')
 <div x-data="{ showAbonarModal: false, cuotaSeleccionada: null }" class="container mx-auto px-4 py-6">
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
         <h1 class="text-2xl font-bold text-gray-900">Pagos Incompletos</h1>
@@ -51,7 +53,7 @@
                                 @endif
                                 @can('update', $pago)
                                 <button type="button" onclick="abonarPago({{ $pago->id_pag }}, {{ $pago->saldo ?? 0 }})" class="text-green-600 hover:text-green-900" title="Abonar">
-                                    <i class="fas fa-money-bill-wave"></i>
+                                    <i class="fas fa-money-bill-wave mr-1"></i> Registrar abono
                                 </button>
                                 @endcan
                             </div>

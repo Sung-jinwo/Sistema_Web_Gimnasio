@@ -78,7 +78,7 @@ class SedeController extends Controller
     public function toggleEstado(Request $request, $id)
     {
         $sede = Sede::findOrFail($id);
-        $sede->sede_estado = !$sede->sede_estado;
+        $sede->sede_estado = ! $sede->sede_estado;
         $sede->save();
 
         $mensaje = $sede->sede_estado ? 'Sede activada.' : 'Sede desactivada.';

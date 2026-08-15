@@ -1,9 +1,11 @@
 @extends('layouts.app')
 
+@section('title','Alumnos - SIGG')
+@section('page-title','Alumnos')
+@section('page-subtitle','Registro y ficha integral de alumnos')
 @section('content')
-<div x-data="{ showCreateModal: false, showEditModal: false }" class="container mx-auto px-4 py-6">
-    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-        <h1 class="text-2xl font-bold text-gray-900">Alumnos</h1>
+<div id="alumnosRoot" x-data="{ showCreateModal: {{ $errors->any() ? 'true' : 'false' }}, showEditModal: false, selectedAlumno: null, editUrl: '', closeEditModal(){ this.showEditModal=false; this.selectedAlumno=null } }" class="w-full space-y-5">
+    <div class="flex flex-col sm:flex-row justify-end items-start sm:items-center gap-4">
         @can('create', App\Models\Alumno::class)
         <button type="button" @click="showCreateModal = true" class="inline-flex items-center px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition">
             <i class="fas fa-plus mr-2"></i> Nuevo Alumno
@@ -112,7 +114,10 @@ function editAlumno(id) {
     })
     .then(response => response.json())
     .then(data => {
-        window.dispatchEvent(new CustomEvent('open-edit-modal', { detail: data }));
+        const state = Alpine.$data(document.getElementById('alumnosRoot'));
+        state.selectedAlumno = data;
+        state.editUrl = `{{ url('/alumnos') }}/${id}`;
+        state.showEditModal = true;
     });
 }
 </script>

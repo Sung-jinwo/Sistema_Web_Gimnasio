@@ -15,9 +15,13 @@ class ProductoRequest extends FormRequest
     {
         return [
             'prod_nombre' => 'required',
+            'prod_codigo' => 'nullable|string|max:20|unique:productos,prod_codigo,'.$this->route('producto').',id_productos',
             'prod_precio' => 'required|numeric|min:0.01',
             'prod_cantidad' => 'required|integer|min:0',
+            'prod_stock_minimo' => 'nullable|integer|min:0',
+            'prod_marca' => 'nullable|string|max:50',
             'fkcategoria' => 'required|exists:categorias,id_categoria',
+            'fksede' => 'nullable|exists:sedes,id_sede',
         ];
     }
 

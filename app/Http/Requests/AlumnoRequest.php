@@ -2,10 +2,22 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Alumno;
 use Illuminate\Foundation\Http\FormRequest;
 
 class AlumnoRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        if (! $this->filled('alum_codigo')) {
+            do {
+                $codigo = (string) random_int(1000, 9999);
+            } while (Alumno::withTrashed()->where('alum_codigo', $codigo)->exists());
+
+            $this->merge(['alum_codigo' => $codigo]);
+        }
+    }
+
     /**
      * Determine if the user is authorized to make this request.
      */
@@ -23,7 +35,7 @@ class AlumnoRequest extends FormRequest
     {
         $alumno = $this->route('alumno');
         $alumnoId = null;
-        
+
         if (is_object($alumno)) {
             $alumnoId = $alumno->id_alumno;
         } elseif (is_numeric($alumno)) {
@@ -31,17 +43,16 @@ class AlumnoRequest extends FormRequest
         }
 
         return [
-            'alum_codigo' => 'required|string|max:20|unique:alumno,alum_codigo,' . $alumnoId . ',id_alumno',
+            'alum_codigo' => 'required|string|max:20|unique:alumno,alum_codigo,'.$alumnoId.',id_alumno',
             'alum_nombre' => 'required|string|max:100',
             'alum_apellido' => 'required|string|max:100',
             'alum_direccion' => 'nullable|string|max:200',
             'alum_correro' => 'nullable|email|max:100',
             'alum_telefo' => 'required|string|max:20',
-            'alum_numDoc' => 'required|string|size:8|unique:alumno,alum_numDoc,' . $alumnoId . ',id_alumno',
-            'alum_documento' => 'required|in:DNI,CE,PAS',
+            'alum_numDoc' => 'required|string|max:20|unique:alumno,alum_numDoc,'.$alumnoId.',id_alumno'.($this->input('alum_documento') === 'DNI' ? '|size:8' : ''),
+            'alum_documento' => 'required|in:DNI,CE,PAS,OTRO',
             'fksexo' => 'required|exists:sexo,id_sexo',
             'fksede' => 'required|exists:sedes,id_sede',
-            'fkuser' => 'required|exists:users,id',
             'fecha_nac' => 'required|date|before_or_equal:today',
             'alum_condi' => 'nullable|string',
             'alum_estado' => 'nullable|boolean',
@@ -74,8 +85,6 @@ class AlumnoRequest extends FormRequest
             'alum_correro.max' => 'El correo no puede exceder 100 caracteres.',
             'fksede.required' => 'Debe seleccionar una sede.',
             'fksede.exists' => 'La sede seleccionada no es válida.',
-            'fkuser.required' => 'Debe seleccionar un usuario responsable.',
-            'fkuser.exists' => 'El usuario seleccionado no es válido.',
         ];
     }
 }

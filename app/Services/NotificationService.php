@@ -43,7 +43,7 @@ class NotificationService
             $usuarios = $this->obtenerUsuariosNotificables($membresia->alumno->fksede);
 
             foreach ($usuarios as $usuario) {
-                if (!$this->existeNotificacion(
+                if (! $this->existeNotificacion(
                     $usuario->id,
                     'membresia_por_vencer',
                     'membresia_alumno',
@@ -53,7 +53,7 @@ class NotificationService
                         'fkuser' => $usuario->id,
                         'tipo' => 'membresia_por_vencer',
                         'titulo' => 'Membresía próxima a vencer',
-                        'mensaje' => "La membresía de {$membresia->alumno->nombreCompleto} vencerá el " .
+                        'mensaje' => "La membresía de {$membresia->alumno->nombreCompleto} vencerá el ".
                                      Carbon::parse($membresia->fecha_fin)->format('d/m/Y'),
                         'referencia_tipo' => 'membresia_alumno',
                         'referencia_id' => $membresia->id_membresia_alumno,
@@ -81,7 +81,7 @@ class NotificationService
             $usuarios = $this->obtenerUsuariosNotificables($membresia->alumno->fksede);
 
             foreach ($usuarios as $usuario) {
-                if (!$this->existeNotificacion(
+                if (! $this->existeNotificacion(
                     $usuario->id,
                     'membresia_vencida',
                     'membresia_alumno',
@@ -91,7 +91,7 @@ class NotificationService
                         'fkuser' => $usuario->id,
                         'tipo' => 'membresia_vencida',
                         'titulo' => 'Membresía vencida',
-                        'mensaje' => "La membresía de {$membresia->alumno->nombreCompleto} venció el " .
+                        'mensaje' => "La membresía de {$membresia->alumno->nombreCompleto} venció el ".
                                      Carbon::parse($membresia->fecha_fin)->format('d/m/Y'),
                         'referencia_tipo' => 'membresia_alumno',
                         'referencia_id' => $membresia->id_membresia_alumno,
@@ -114,12 +114,14 @@ class NotificationService
 
         $count = 0;
         foreach ($ventas as $venta) {
-            if (!$venta->alumno) continue;
+            if (! $venta->alumno) {
+                continue;
+            }
 
             $usuarios = $this->obtenerUsuariosNotificables($venta->fksede);
 
             foreach ($usuarios as $usuario) {
-                if (!$this->existeNotificacion(
+                if (! $this->existeNotificacion(
                     $usuario->id,
                     'pago_pendiente',
                     'venta',
@@ -129,7 +131,7 @@ class NotificationService
                         'fkuser' => $usuario->id,
                         'tipo' => 'pago_pendiente',
                         'titulo' => 'Pago pendiente',
-                        'mensaje' => "{$venta->alumno->nombreCompleto} tiene un pago pendiente de S/ " .
+                        'mensaje' => "{$venta->alumno->nombreCompleto} tiene un pago pendiente de S/ ".
                                      number_format($venta->saldo, 2),
                         'referencia_tipo' => 'venta',
                         'referencia_id' => $venta->id_venta,
@@ -155,12 +157,14 @@ class NotificationService
 
         $count = 0;
         foreach ($ventas as $venta) {
-            if (!$venta->alumno) continue;
+            if (! $venta->alumno) {
+                continue;
+            }
 
             $usuarios = $this->obtenerUsuariosNotificables($venta->fksede);
 
             foreach ($usuarios as $usuario) {
-                if (!$this->existeNotificacion(
+                if (! $this->existeNotificacion(
                     $usuario->id,
                     'pago_vencido',
                     'venta',
@@ -170,9 +174,9 @@ class NotificationService
                         'fkuser' => $usuario->id,
                         'tipo' => 'pago_vencido',
                         'titulo' => 'Pago vencido',
-                        'mensaje' => "{$venta->alumno->nombreCompleto} tiene un pago vencido de S/ " .
-                                     number_format($venta->saldo, 2) . " (venció el " .
-                                     Carbon::parse($venta->fecha_acordada)->format('d/m/Y') . ")",
+                        'mensaje' => "{$venta->alumno->nombreCompleto} tiene un pago vencido de S/ ".
+                                     number_format($venta->saldo, 2).' (venció el '.
+                                     Carbon::parse($venta->fecha_acordada)->format('d/m/Y').')',
                         'referencia_tipo' => 'venta',
                         'referencia_id' => $venta->id_venta,
                         'fecha_expiracion' => now()->addDays(7),
@@ -200,6 +204,7 @@ class NotificationService
 
         if ($notificacion) {
             $notificacion->update(['leida' => true]);
+
             return true;
         }
 

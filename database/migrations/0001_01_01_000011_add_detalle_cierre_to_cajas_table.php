@@ -13,7 +13,7 @@ return new class extends Migration
             $table->decimal('total_egresos', 10, 2)->default(0)->after('total_ingresos_esperado');
             $table->decimal('monto_entregado', 10, 2)->nullable()->after('total_egresos');
             $table->decimal('diferencia', 10, 2)->nullable()->after('monto_entregado');
-            
+
             $table->enum('estado', ['abierta', 'cerrada', 'anulada'])->default('abierta')->change();
         });
     }
@@ -25,9 +25,9 @@ return new class extends Migration
                 'total_ingresos_esperado',
                 'total_egresos',
                 'monto_entregado',
-                'diferencia'
+                'diferencia',
             ]);
-            
+
             $table->enum('estado', ['abierta', 'cerrada'])->default('abierta')->change();
         });
     }

@@ -25,10 +25,10 @@ class GenerarNotificaciones extends Command
 
         $resultados = $this->notificationService->generarNotificaciones();
 
-        $this->info('Membresías por vencer: ' . $resultados['membresias_por_vencer'] . ' notificaciones');
-        $this->info('Membresías vencidas: ' . $resultados['membresias_vencidas'] . ' notificaciones');
-        $this->info('Pagos pendientes: ' . $resultados['pagos_pendientes'] . ' notificaciones');
-        $this->info('Pagos vencidos: ' . $resultados['pagos_vencidos'] . ' notificaciones');
+        $this->info('Membresías por vencer: '.$resultados['membresias_por_vencer'].' notificaciones');
+        $this->info('Membresías vencidas: '.$resultados['membresias_vencidas'].' notificaciones');
+        $this->info('Pagos pendientes: '.$resultados['pagos_pendientes'].' notificaciones');
+        $this->info('Pagos vencidos: '.$resultados['pagos_vencidos'].' notificaciones');
 
         $total = array_sum($resultados);
         $this->info("Total: {$total} notificaciones generadas");

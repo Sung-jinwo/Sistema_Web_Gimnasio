@@ -14,6 +14,13 @@ class Comision extends Model
 
     public $timestamps = true;
 
+    protected static function booted(): void
+    {
+        static::creating(function (Comision $comision) {
+            $comision->monto ??= $comision->comision_base ?? 0;
+        });
+    }
+
     public function usuario()
     {
         return $this->belongsTo(User::class, 'fkuser', 'id');
@@ -46,7 +53,7 @@ class Comision extends Model
 
     public function getDiasRetrasoAttribute(): int
     {
-        if (!$this->fecha_acordada_pago || !$this->fecha_pago_real) {
+        if (! $this->fecha_acordada_pago || ! $this->fecha_pago_real) {
             return 0;
         }
 

@@ -18,6 +18,16 @@ class Venta extends Model
 
     public $timestamps = true;
 
+    protected $casts = [
+        'anulada_at' => 'datetime',
+        'venta_fecha' => 'date',
+    ];
+
+    public function anuladaPor()
+    {
+        return $this->belongsTo(User::class, 'anulada_por');
+    }
+
     public function alumno()
     {
         return $this->belongsTo(Alumno::class, 'fkalum', 'id_alumno');
@@ -46,6 +56,11 @@ class Venta extends Model
     public function producto()
     {
         return $this->belongsTo(Producto::class, 'fkproducto', 'id_productos');
+    }
+
+    public function comisiones()
+    {
+        return $this->hasMany(Comision::class, 'fkventa', 'id_venta');
     }
 
     public function getFechaReservaAttribute($value)

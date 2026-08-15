@@ -8,12 +8,9 @@ use Illuminate\View\Component;
 
 class Table extends Component
 {
-
     public array $headers;
 
-
     public bool $hoverable;
-
 
     public bool $bordered;
 

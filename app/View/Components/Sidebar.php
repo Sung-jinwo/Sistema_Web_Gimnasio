@@ -207,13 +207,6 @@ class Sidebar extends Component
                 'roles' => ['Administrador', 'Local', 'Redes'],
             ],
             [
-                'id' => 'notificaciones',
-                'label' => 'Notificaciones',
-                'icon' => 'fa-bell',
-                'route' => 'notificaciones',
-                'roles' => ['Administrador', 'Local', 'Redes'],
-            ],
-            [
                 'id' => 'usuarios',
                 'label' => 'Usuarios',
                 'icon' => 'fa-user',
@@ -225,13 +218,6 @@ class Sidebar extends Component
                 'label' => 'Sedes',
                 'icon' => 'fa-building',
                 'route' => 'sedes',
-                'roles' => ['Administrador'],
-            ],
-            [
-                'id' => 'graficos',
-                'label' => 'Gráficos',
-                'icon' => 'fa-chart-column',
-                'route' => 'graficos',
                 'roles' => ['Administrador'],
             ],
             [

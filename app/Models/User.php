@@ -9,7 +9,7 @@ use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
 {
-    use HasFactory, Notifiable, HasRoles;
+    use HasFactory, HasRoles, Notifiable;
 
     protected $fillable = [
         'name',
@@ -35,13 +35,19 @@ class User extends Authenticatable
     }
 
     const ROL_ADMIN = 0;
+
     const ROL_EMPLEADO = 1;
+
     const ROL_ASISTENCIA = 2;
+
     const ROL_VENTAS = 3;
 
     const ROL_SPATIE_ADMIN = 'Administrador';
+
     const ROL_SPATIE_LOCAL = 'Local';
+
     const ROL_SPATIE_REDES = 'Redes';
+
     const ROL_SPATIE_ASISTENCIA = 'Asistencia';
 
     public function is($rol)
@@ -73,5 +79,10 @@ class User extends Authenticatable
         ];
 
         return $arr[$this->rol] ?? null;
+    }
+
+    public function comisiones()
+    {
+        return $this->hasMany(Comision::class, 'fkuser');
     }
 }

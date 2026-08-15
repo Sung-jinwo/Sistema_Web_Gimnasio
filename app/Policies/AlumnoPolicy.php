@@ -37,7 +37,7 @@ class AlumnoPolicy
 
     public function delete(User $user, Alumno $alumno): bool
     {
-        if (!$user->hasRole('Administrador')) {
+        if (! $user->hasRole('Administrador')) {
             return false;
         }
 

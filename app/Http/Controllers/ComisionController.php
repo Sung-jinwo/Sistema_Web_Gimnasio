@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Models\Comision;
+use App\Models\User;
 use App\Services\CommissionService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class ComisionController extends Controller
 {
@@ -21,7 +23,7 @@ class ComisionController extends Controller
 
         $query = Comision::with(['usuario', 'venta.alumno', 'venta.producto']);
 
-        if (!auth()->user()->hasRole('Administrador')) {
+        if (! auth()->user()->hasRole('Administrador')) {
             $query->where('fkuser', auth()->id());
         }
 
@@ -31,6 +33,9 @@ class ComisionController extends Controller
 
         if ($request->has('tipo') && $request->tipo) {
             $query->where('tipo', $request->tipo);
+        }
+        if ($request->filled('empleado')) {
+            $query->where('fkuser', $request->integer('empleado'));
         }
 
         $comisiones = $query->orderByDesc('created_at')->paginate(15);
@@ -48,7 +53,9 @@ class ComisionController extends Controller
             ]);
         }
 
-        return view('comisiones.index', compact('comisiones', 'resumen'));
+        $empleados = User::whereHas('comisiones')->orderBy('name')->get(['id', 'name']);
+
+        return view('comisiones.index', compact('comisiones', 'resumen', 'empleados'));
     }
 
     public function misComisiones(Request $request)
@@ -99,7 +106,7 @@ class ComisionController extends Controller
     {
         $comision = Comision::findOrFail($id);
 
-        if (!auth()->user()->hasRole('Administrador')) {
+        if (! auth()->user()->hasRole('Administrador')) {
             abort(403, 'No autorizado');
         }
 
@@ -115,5 +122,20 @@ class ComisionController extends Controller
 
         return redirect()->route('comisiones.index')
             ->with('success', 'Comisión liquidada exitosamente');
+    }
+
+    public function liquidarSeleccion(Request $request)
+    {
+        abort_unless(auth()->user()->hasRole('Administrador'), 403);
+        $ids = $request->validate(['comisiones' => 'required|array|min:1', 'comisiones.*' => 'integer|exists:comisiones,id_comision'])['comisiones'];
+        DB::transaction(function () use ($ids) {
+            $comisiones = Comision::whereIn('id_comision', $ids)->where('estado', 'pendiente')->lockForUpdate()->get();
+            abort_if($comisiones->isEmpty() || $comisiones->pluck('fkuser')->unique()->count() !== 1, 422, 'Seleccione comisiones pendientes de un solo empleado.');
+            $id = DB::table('liquidaciones_comision')->insertGetId(['fkuser' => $comisiones->first()->fkuser, 'liquidada_por' => auth()->id(), 'total' => $comisiones->sum('comision_final'), 'created_at' => now(), 'updated_at' => now()], 'id_liquidacion');
+            DB::table('liquidacion_comision_detalles')->insert($comisiones->map(fn ($c) => ['fkliquidacion' => $id, 'fkcomision' => $c->id_comision])->all());
+            Comision::whereIn('id_comision', $comisiones->pluck('id_comision'))->update(['estado' => 'liquidada', 'fecha_pago_real' => now()]);
+        });
+
+        return back()->with('success', 'Comisiones seleccionadas liquidadas correctamente.');
     }
 }

@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Model;
 
 class Notificacion extends Model
@@ -37,7 +36,7 @@ class Notificacion extends Model
     {
         return $query->where(function ($q) {
             $q->whereNull('fecha_expiracion')
-              ->orWhere('fecha_expiracion', '>', now());
+                ->orWhere('fecha_expiracion', '>', now());
         });
     }
 

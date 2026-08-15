@@ -7,9 +7,13 @@ use Illuminate\View\Component;
 class StatCard extends Component
 {
     public string $title;
+
     public string $value;
+
     public string $icon;
+
     public string $color;
+
     public ?string $subtitle;
 
     public function __construct(

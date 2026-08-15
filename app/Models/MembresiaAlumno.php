@@ -26,20 +26,21 @@ class MembresiaAlumno extends Model
     public function scopeActivas($query)
     {
         return $query->where('estado', 'activa')
-                    ->where('fecha_fin', '>=', now()->format('Y-m-d'));
+            ->where('fecha_fin', '>=', now()->format('Y-m-d'));
     }
 
     public function scopeVencidas($query)
     {
         return $query->where('estado', 'activa')
-                    ->where('fecha_fin', '<', now()->format('Y-m-d'));
+            ->where('fecha_fin', '<', now()->format('Y-m-d'));
     }
 
     public function scopePorVencer($query, $dias = 5)
     {
         $fechaLimite = now()->addDays($dias)->format('Y-m-d');
+
         return $query->where('estado', 'activa')
-                    ->whereBetween('fecha_fin', [now()->format('Y-m-d'), $fechaLimite]);
+            ->whereBetween('fecha_fin', [now()->format('Y-m-d'), $fechaLimite]);
     }
 
     public function getVigenteAttribute(): bool
@@ -49,7 +50,7 @@ class MembresiaAlumno extends Model
 
     public function getDiasRestantesAttribute(): int
     {
-        if (!$this->vigente) {
+        if (! $this->vigente) {
             return 0;
         }
 
@@ -62,7 +63,7 @@ class MembresiaAlumno extends Model
             return 'Cancelada';
         }
 
-        if (!$this->vigente) {
+        if (! $this->vigente) {
             return 'Vencida';
         }
 

@@ -5,7 +5,6 @@ namespace App\Services;
 use App\Models\Cuota;
 use App\Models\Pago;
 use App\Models\Venta;
-use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class PaymentService
@@ -42,6 +41,7 @@ class PaymentService
     public function calcularSaldo(int $ventaId): float
     {
         $venta = Venta::findOrFail($ventaId);
+
         return max(0, $venta->venta_total - $venta->monto_pagado);
     }
 

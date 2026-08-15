@@ -2,12 +2,11 @@
 
 namespace App\Http\Controllers;
 
+use App\Http\Requests\AsistenciaRequest;
 use App\Models\Alumno;
 use App\Models\Asistencia;
 use App\Models\Pago;
-use App\Http\Requests\AsistenciaRequest;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class AsistenciaController extends Controller
 {
@@ -18,8 +17,8 @@ class AsistenciaController extends Controller
 
         if ($request->has('search') && $request->search) {
             $query->whereHas('alumno', function ($q) use ($request) {
-                $q->where('alum_nombre', 'like', '%' . $request->search . '%')
-                  ->orWhere('alum_apellido', 'like', '%' . $request->search . '%');
+                $q->where('alum_nombre', 'like', '%'.$request->search.'%')
+                    ->orWhere('alum_apellido', 'like', '%'.$request->search.'%');
             });
         }
 
@@ -54,10 +53,11 @@ class AsistenciaController extends Controller
             ->orderBy('created_at', 'desc')
             ->first();
 
-        if (!$ultimoPago || $ultimoPago->pag_fin < now()->format('Y-m-d')) {
+        if (! $ultimoPago || $ultimoPago->pag_fin < now()->format('Y-m-d')) {
             if ($request->expectsJson()) {
                 return response()->json(['error' => 'La membresia del alumno esta vencida'], 422);
             }
+
             return redirect()->back()
                 ->withErrors(['error' => 'La membresia del alumno esta vencida'])
                 ->withInput();

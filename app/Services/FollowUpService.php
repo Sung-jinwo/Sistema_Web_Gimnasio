@@ -14,19 +14,19 @@ class FollowUpService
         $query = MembresiaAlumno::with(['alumno.sede', 'membresia'])
             ->where('estado', 'activa');
 
-        if ($usuario && !$usuario->hasRole('Administrador')) {
+        if ($usuario && ! $usuario->hasRole('Administrador')) {
             $query->whereHas('alumno', function ($q) use ($usuario) {
                 $q->where('fksede', $usuario->fksede);
             });
         }
 
-        if (!empty($filtros['sede'])) {
+        if (! empty($filtros['sede'])) {
             $query->whereHas('alumno', function ($q) use ($filtros) {
                 $q->where('fksede', $filtros['sede']);
             });
         }
 
-        if (!empty($filtros['empleado'])) {
+        if (! empty($filtros['empleado'])) {
             $query->whereHas('alumno', function ($q) use ($filtros) {
                 $q->where('fkuser', $filtros['empleado']);
             });
@@ -35,9 +35,9 @@ class FollowUpService
         $hoy = now()->format('Y-m-d');
         $query->where('fecha_fin', '>=', $hoy);
 
-        if (!empty($filtros['mes'])) {
+        if (! empty($filtros['mes'])) {
             $query->whereMonth('fecha_fin', $filtros['mes']);
-            if (!empty($filtros['anio'])) {
+            if (! empty($filtros['anio'])) {
                 $query->whereYear('fecha_fin', $filtros['anio']);
             }
         }
@@ -54,19 +54,19 @@ class FollowUpService
         $query = MembresiaAlumno::with(['alumno.sede', 'membresia'])
             ->where('estado', 'activa');
 
-        if ($usuario && !$usuario->hasRole('Administrador')) {
+        if ($usuario && ! $usuario->hasRole('Administrador')) {
             $query->whereHas('alumno', function ($q) use ($usuario) {
                 $q->where('fksede', $usuario->fksede);
             });
         }
 
-        if (!empty($filtros['sede'])) {
+        if (! empty($filtros['sede'])) {
             $query->whereHas('alumno', function ($q) use ($filtros) {
                 $q->where('fksede', $filtros['sede']);
             });
         }
 
-        if (!empty($filtros['empleado'])) {
+        if (! empty($filtros['empleado'])) {
             $query->whereHas('alumno', function ($q) use ($filtros) {
                 $q->where('fkuser', $filtros['empleado']);
             });
@@ -75,9 +75,9 @@ class FollowUpService
         $hoy = now()->format('Y-m-d');
         $query->where('fecha_fin', '<', $hoy);
 
-        if (!empty($filtros['mes'])) {
+        if (! empty($filtros['mes'])) {
             $query->whereMonth('fecha_fin', $filtros['mes']);
-            if (!empty($filtros['anio'])) {
+            if (! empty($filtros['anio'])) {
                 $query->whereYear('fecha_fin', $filtros['anio']);
             }
         }
@@ -90,15 +90,15 @@ class FollowUpService
         $query = Venta::with(['alumno.sede', 'producto'])
             ->whereIn('estado_pago', ['parcial', 'pendiente']);
 
-        if ($usuario && !$usuario->hasRole('Administrador')) {
+        if ($usuario && ! $usuario->hasRole('Administrador')) {
             $query->where('fksede', $usuario->fksede);
         }
 
-        if (!empty($filtros['sede'])) {
+        if (! empty($filtros['sede'])) {
             $query->where('fksede', $filtros['sede']);
         }
 
-        if (!empty($filtros['empleado'])) {
+        if (! empty($filtros['empleado'])) {
             $query->where('fkusers', $filtros['empleado']);
         }
 
@@ -111,9 +111,9 @@ class FollowUpService
         $telefono = preg_replace('/[^0-9]/', '', $alumno->alum_telefo ?? '');
 
         if (str_starts_with($telefono, '0')) {
-            $telefono = '51' . substr($telefono, 1);
-        } elseif (!str_starts_with($telefono, '51')) {
-            $telefono = '51' . $telefono;
+            $telefono = '51'.substr($telefono, 1);
+        } elseif (! str_starts_with($telefono, '51')) {
+            $telefono = '51'.$telefono;
         }
 
         $membresiaActiva = MembresiaAlumno::where('fkalumno', $alumno->id_alumno)
@@ -134,7 +134,7 @@ class FollowUpService
         return [
             'telefono' => $telefono,
             'mensaje' => $mensajes[$tipo] ?? $mensajes['vencimiento'],
-            'url' => "https://wa.me/{$telefono}?text=" . urlencode($mensajes[$tipo] ?? $mensajes['vencimiento']),
+            'url' => "https://wa.me/{$telefono}?text=".urlencode($mensajes[$tipo] ?? $mensajes['vencimiento']),
         ];
     }
 }

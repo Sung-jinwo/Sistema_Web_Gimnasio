@@ -17,6 +17,8 @@ class Categoria extends Model
 
     public $timestamps = true;
 
+    protected $casts = ['cat_estado' => 'boolean'];
+
     public function productos()
     {
         return $this->hasMany(Producto::class, 'fkcategoria', 'id_categoria');

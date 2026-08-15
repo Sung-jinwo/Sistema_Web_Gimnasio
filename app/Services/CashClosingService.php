@@ -38,6 +38,7 @@ class CashClosingService
         return [
             'cantidad' => $ventas->count(),
             'total' => $ventas->sum('venta_total'),
+            'cobrado' => $ventas->sum('monto_pagado'),
             'ventas' => $ventas,
         ];
     }
@@ -53,7 +54,7 @@ class CashClosingService
         $porMetodo = [];
         foreach ($pagos as $pago) {
             $metodoNombre = $pago->metodo->metod_nombre ?? 'Sin método';
-            if (!isset($porMetodo[$metodoNombre])) {
+            if (! isset($porMetodo[$metodoNombre])) {
                 $porMetodo[$metodoNombre] = 0;
             }
             $porMetodo[$metodoNombre] += $pago->pag_monto;
@@ -101,7 +102,8 @@ class CashClosingService
         $pagos = $this->calcularPagos($caja);
         $gastos = $this->calcularGastosAprobados($caja);
 
-        $ingresos = $ventas['total'] + $pagos['total'];
+        // Caja cuenta dinero efectivamente cobrado, no cuentas por cobrar.
+        $ingresos = $ventas['cobrado'] + $pagos['total'];
         $egresos = $gastos['total'];
 
         return $caja->monto_inicial + $ingresos - $egresos;
@@ -219,7 +221,7 @@ class CashClosingService
         foreach ($ventas as $venta) {
             $comisionExistente = Comision::where('fkventa', $venta->id_venta)->first();
 
-            if (!$comisionExistente) {
+            if (! $comisionExistente) {
                 $comisionBase = $commissionService->calcularComisionBase($venta->id_venta, $venta->fkusers);
 
                 if ($comisionBase > 0) {

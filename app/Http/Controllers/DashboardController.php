@@ -8,17 +8,14 @@ use App\Models\Caja;
 use App\Models\Comision;
 use App\Models\Gasto;
 use App\Models\MembresiaAlumno;
-use App\Models\Pago;
-use App\Models\Producto;
-use App\Models\User;
 use App\Models\Venta;
 use App\Services\FollowUpService;
 use App\Services\NotificationService;
-use Carbon\Carbon;
 
 class DashboardController extends Controller
 {
     protected FollowUpService $followUpService;
+
     protected NotificationService $notificationService;
 
     public function __construct(

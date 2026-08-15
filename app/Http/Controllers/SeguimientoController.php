@@ -61,12 +61,14 @@ class SeguimientoController extends Controller
     public function vencimientos(Request $request)
     {
         $request->merge(['tab' => 'por_vencer']);
+
         return $this->index($request);
     }
 
     public function vencidos(Request $request)
     {
         $request->merge(['tab' => 'vencidos']);
+
         return $this->index($request);
     }
 
@@ -89,7 +91,7 @@ class SeguimientoController extends Controller
     protected function authorizeSeguimiento(): void
     {
         $user = auth()->user();
-        if (!$user->hasRole(['Administrador', 'Local', 'Redes'])) {
+        if (! $user->hasRole(['Administrador', 'Local', 'Redes'])) {
             abort(403, 'No tienes permiso para acceder a esta sección.');
         }
     }

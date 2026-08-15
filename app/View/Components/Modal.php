@@ -9,7 +9,9 @@ use Illuminate\View\Component;
 class Modal extends Component
 {
     public string $title;
+
     public string $size;
+
     public bool $dismissible;
 
     public function __construct(
@@ -29,7 +31,7 @@ class Modal extends Component
 
     public function getSizeClass(): string
     {
-        return match($this->size) {
+        return match ($this->size) {
             'sm' => 'max-w-sm',
             'md' => 'max-w-md',
             'lg' => 'max-w-lg',

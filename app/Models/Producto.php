@@ -12,11 +12,14 @@ class Producto extends Model
     const STOCK_CRITICO = 0;
 
     protected $table = 'productos';
+
     protected $primaryKey = 'id_productos';
+
     protected $guarded = [];
 
     public $timestamps = true;
 
+    protected $casts = ['prod_estado' => 'boolean'];
 
     public function categoria()
     {
@@ -32,6 +35,7 @@ class Producto extends Model
     {
         return $this->prod_cantidad <= self::STOCK_CRITICO;
     }
+
     // Sede
     public function sede()
     {

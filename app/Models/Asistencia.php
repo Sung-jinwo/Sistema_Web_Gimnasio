@@ -7,10 +7,13 @@ use Illuminate\Database\Eloquent\Model;
 class Asistencia extends Model
 {
     protected $table = 'visitas';
+
     protected $primaryKey = 'id_visi';
+
     protected $guarded = [];
+
     protected $casts = [
-        'visi_fecha' => 'datetime'
+        'visi_fecha' => 'datetime',
     ];
 
     public $timestamps = true;
@@ -19,13 +22,13 @@ class Asistencia extends Model
     {
         parent::boot();
         static::creating(function ($asistencia) {
-            if (!$asistencia->visi_fecha) {
+            if (! $asistencia->visi_fecha) {
                 $asistencia->visi_fecha = now();
             }
         });
     }
 
-        public function alumno()
+    public function alumno()
     {
         return $this->belongsTo(Alumno::class, 'fkalum', 'id_alumno');
     }

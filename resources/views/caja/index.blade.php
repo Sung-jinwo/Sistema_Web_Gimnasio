@@ -1,7 +1,40 @@
 @extends('layouts.app')
 
 @section('content')
-<div x-data="{ showAperturaModal: false, showCierreModal: false, showAnularModal: false }" class="container mx-auto px-4 py-6">
+@section('page-title','Caja por sede')
+@section('page-subtitle','Apertura, movimientos, cierre y consolidado diario')
+<div x-data="{ showAperturaModal: false, showCierreModal: false, showAnularModal: false }" class="w-full space-y-5">
+    @if(auth()->user()->hasRole('Administrador'))
+    <form method="GET" action="{{ route('caja.index') }}" class="bg-white rounded-lg shadow-sm p-4">
+        <div class="flex gap-3 items-end">
+            <div class="flex-1">
+                <label class="block text-sm font-medium text-gray-700 mb-1">Sede a gestionar</label>
+                <select name="sede" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
+                    <option value="">Seleccione una sede</option>
+                    @foreach($sedes as $s)
+                        <option value="{{ $s->id_sede }}" @selected($sedeSeleccionada == $s->id_sede)>{{ $s->sede_nombre }}</option>
+                    @endforeach
+                </select>
+            </div>
+            <button type="submit" class="px-4 py-2 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition">
+                <i class="fas fa-eye mr-2"></i> Ver caja
+            </button>
+        </div>
+    </form>
+    @endif
+
+    @if(auth()->user()->hasRole('Administrador'))
+    <div class="grid md:grid-cols-3 gap-4">
+        @foreach($consolidado as $item)
+        <article class="bg-white rounded-lg shadow-sm p-4">
+            <h3 class="font-bold text-gray-900 mb-2">{{ $item['sede'] }}</h3>
+            <p class="text-sm text-gray-500">Esperado: S/ {{ number_format($item['esperado'], 2) }}</p>
+            <p class="text-sm">Entregado: <b>S/ {{ number_format($item['entregado'], 2) }}</b></p>
+            <p class="text-sm">Diferencia: S/ {{ number_format($item['diferencia'], 2) }}</p>
+        </article>
+        @endforeach
+    </div>
+    @endif
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
         <h1 class="text-2xl font-bold text-gray-900">Caja</h1>
         @if(!$cajaAbierta)
@@ -229,6 +262,7 @@
     <x-modal-form show="showAperturaModal" title="Abrir Caja" subtitle="Ingrese el monto inicial" icon='<i class="fas fa-cash-register text-white"></i>' size="sm" headerColor="green">
         <form method="POST" action="{{ route('caja.apertura') }}" class="space-y-4">
             @csrf
+            @if(auth()->user()->hasRole('Administrador'))<input type="hidden" name="fksede" value="{{ $sedeSeleccionada }}">@endif
             <div>
                 <label for="monto_inicial" class="block text-sm font-medium text-gray-700 mb-1">Monto Inicial (S/) <span class="text-red-500">*</span></label>
                 <input type="number" step="0.01" id="monto_inicial" name="monto_inicial" required min="0" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent" placeholder="0.00">

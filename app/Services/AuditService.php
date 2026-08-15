@@ -57,23 +57,23 @@ class AuditService
     {
         $query = AuditLog::with('usuario');
 
-        if (!empty($filtros['usuario'])) {
+        if (! empty($filtros['usuario'])) {
             $query->porUsuario($filtros['usuario']);
         }
 
-        if (!empty($filtros['modulo'])) {
+        if (! empty($filtros['modulo'])) {
             $query->porModulo($filtros['modulo']);
         }
 
-        if (!empty($filtros['accion'])) {
+        if (! empty($filtros['accion'])) {
             $query->porAccion($filtros['accion']);
         }
 
-        if (!empty($filtros['fecha_inicio'])) {
+        if (! empty($filtros['fecha_inicio'])) {
             $query->whereDate('created_at', '>=', $filtros['fecha_inicio']);
         }
 
-        if (!empty($filtros['fecha_fin'])) {
+        if (! empty($filtros['fecha_fin'])) {
             $query->whereDate('created_at', '<=', $filtros['fecha_fin']);
         }
 

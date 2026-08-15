@@ -1,7 +1,9 @@
 @extends('layouts.app')
 
 @section('content')
-<div x-data="{ showSedeModal: false }" class="container mx-auto px-4 py-6">
+@section('page-title','Sedes')
+@section('page-subtitle','Administración de locales')
+<div id="sedesRoot" x-data="{ showSedeModal: false }" class="w-full space-y-5">
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
         <h1 class="text-2xl font-bold text-gray-900">Sedes</h1>
         @can('create', App\Models\Sede::class)
@@ -152,7 +154,7 @@ function editSede(id) {
         document.getElementById('sede_horario').value = data.sede_horario || '';
         document.getElementById('sede_estado').checked = data.sede_estado;
 
-        Alpine.$data(document.querySelector('[x-data]')).showSedeModal = true;
+        Alpine.$data(document.getElementById('sedesRoot')).showSedeModal = true;
     });
 }
 </script>

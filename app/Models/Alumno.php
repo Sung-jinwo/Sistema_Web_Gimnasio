@@ -75,9 +75,9 @@ class Alumno extends Model
     public function membresiaActiva()
     {
         return $this->hasOne(MembresiaAlumno::class, 'fkalumno', 'id_alumno')
-                    ->where('estado', 'activa')
-                    ->where('fecha_fin', '>=', now()->format('Y-m-d'))
-                    ->latest('fecha_inicio');
+            ->where('estado', 'activa')
+            ->where('fecha_fin', '>=', now()->format('Y-m-d'))
+            ->latest('fecha_inicio');
     }
 
     public function getMembresiaVigenteAttribute()
