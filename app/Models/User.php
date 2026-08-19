@@ -34,13 +34,13 @@ class User extends Authenticatable
         ];
     }
 
-    const ROL_ADMIN = 0;
+    const ROL_ADMIN = 1;
 
-    const ROL_EMPLEADO = 1;
+    const ROL_EMPLEDO_LOCAL = 2;
 
-    const ROL_ASISTENCIA = 2;
+    const ROL_ASISTENCIA = 4;
 
-    const ROL_VENTAS = 3;
+    const ROL_REDES = 3;
 
     const ROL_SPATIE_ADMIN = 'Administrador';
 
@@ -62,7 +62,7 @@ class User extends Authenticatable
 
     public static function withRolesAdminAndEmpleado()
     {
-        return self::whereIn('rol', [self::ROL_ADMIN, self::ROL_EMPLEADO, self::ROL_VENTAS])->get();
+        return self::whereIn('rol', [self::ROL_ADMIN, self::ROL_EMPLEDO_LOCAL, self::ROL_REDES])->get();
     }
 
     public function getNombreRolAttribute(): ?string
@@ -73,9 +73,9 @@ class User extends Authenticatable
 
         $arr = [
             self::ROL_ADMIN => 'Administrador',
-            self::ROL_EMPLEADO => 'Empleado',
+            self::ROL_EMPLEDO_LOCAL => 'Empleado',
             self::ROL_ASISTENCIA => 'Asistencia',
-            self::ROL_VENTAS => 'Asesor de ventas',
+            self::ROL_REDES => 'Asesor de ventas',
         ];
 
         return $arr[$this->rol] ?? null;

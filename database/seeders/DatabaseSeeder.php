@@ -98,6 +98,7 @@ class DatabaseSeeder extends Seeder
                 'estado' => true,
             ]
         );
+        $admin->assignRole('Administrador');
 
         $recepcion = User::firstOrCreate(
             ['email' => 'recepcion@gym.com'],
@@ -109,28 +110,34 @@ class DatabaseSeeder extends Seeder
                 'estado' => true,
             ]
         );
+        $recepcion->assignRole('Asistencia');
+
 
         $ventasUser = User::firstOrCreate(
             ['email' => 'ventas@gym.com'],
             [
                 'name' => 'Asesor Ventas',
                 'password' => bcrypt('ventas123'),
-                'rol' => User::ROL_VENTAS,
+                'rol' => User::ROL_REDES,
                 'fksede' => $sede->id_sede,
                 'estado' => true,
             ]
         );
+        $ventasUser->assignRole('Redes');
+
 
         $empleado = User::firstOrCreate(
             ['email' => 'empleado@gym.com'],
             [
                 'name' => 'Empleado Local',
                 'password' => bcrypt('empleado123'),
-                'rol' => User::ROL_EMPLEADO,
+                'rol' => User::ROL_EMPLEDO_LOCAL,
                 'fksede' => $sede2->id_sede,
                 'estado' => true,
             ]
         );
+        $empleado->assignRole('Local');
+
 
         $alumnosData = [
             ['alum_codigo' => 'ALU001', 'alum_nombre' => 'Juan Carlos', 'alum_apellido' => 'García López', 'fksexo' => 1, 'fecha_nac' => '1995-03-15', 'fksede' => $sede->id_sede, 'alum_documento' => 'DNI', 'alum_numDoc' => '12345678', 'alum_telefo' => '987654321', 'alum_correro' => 'juan.garcia@email.com', 'alum_direccion' => 'Av. Los Pinos 123', 'fkuser' => $admin->id],

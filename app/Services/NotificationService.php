@@ -242,7 +242,7 @@ class NotificationService
     protected function obtenerUsuariosNotificables(int $sedeId)
     {
         return User::where('fksede', $sedeId)
-            ->whereIn('rol', [User::ROL_ADMIN, User::ROL_EMPLEADO])
+            ->whereIn('rol', [User::ROL_ADMIN, User::ROL_EMPLEDO_LOCAL])
             ->where('estado', true)
             ->get();
     }
