@@ -136,8 +136,6 @@ class DatabaseSeeder extends Seeder
                 'estado' => true,
             ]
         );
-        $empleado->assignRole('Local');
-
 
         $alumnosData = [
             ['alum_codigo' => 'ALU001', 'alum_nombre' => 'Juan Carlos', 'alum_apellido' => 'García López', 'fksexo' => 1, 'fecha_nac' => '1995-03-15', 'fksede' => $sede->id_sede, 'alum_documento' => 'DNI', 'alum_numDoc' => '12345678', 'alum_telefo' => '987654321', 'alum_correro' => 'juan.garcia@email.com', 'alum_direccion' => 'Av. Los Pinos 123', 'fkuser' => $admin->id],
