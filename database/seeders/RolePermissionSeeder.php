@@ -110,8 +110,8 @@ class RolePermissionSeeder extends Seeder
     {
         $mapeo = [
             User::ROL_ADMIN => 'Administrador',
-            User::ROL_EMPLEADO => 'Local',
-            User::ROL_VENTAS => 'Redes',
+            User::ROL_EMPLEDO_LOCAL => 'Local',
+            User::ROL_REDES => 'Redes',
             User::ROL_ASISTENCIA => 'Asistencia',
         ];
 
