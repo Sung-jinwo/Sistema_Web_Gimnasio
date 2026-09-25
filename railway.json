@@ -5,6 +5,7 @@
     "dockerfilePath": "Dockerfile"
   },
   "deploy": {
+    "preDeployCommand": "sh railway/predeploy.sh",
     "healthcheckPath": "/up",
     "restartPolicyType": "ON_FAILURE"
   }
