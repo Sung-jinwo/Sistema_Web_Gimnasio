@@ -1,0 +1,60 @@
+# Git y CI/CD
+.git
+.gitignore
+.gitattributes
+
+# IDE y editores
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Testing
+tests
+phpunit.xml
+.phpunit.result.cache
+
+# Desarrollo local
+.env
+.env.local
+.env.testing
+docker-compose.yml
+docker-compose.override.yml
+
+# Documentación innecesaria
+*.md
+docs
+LICENSE
+
+# Node modules (se instalan en el build)
+node_modules
+
+# Dependencias de desarrollo de Composer
+vendor
+composer.phar
+
+# Logs
+storage/logs/*
+storage/framework/cache/*
+storage/framework/sessions/*
+storage/framework/views/*
+!storage/logs/.gitkeep
+!storage/framework/cache/.gitkeep
+!storage/framework/sessions/.gitkeep
+!storage/framework/views/.gitkeep
+
+# Assets construidos (se reconstruyen en el build)
+public/build
+public/hot
+public/storage
+
+# Archivos temporales
+*.log
+*.tmp
+.DS_Store
+Thumbs.db
+
+# Configuraciones locales
+docker-compose.local.yml
+.phpactor.json
