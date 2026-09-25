@@ -18,6 +18,14 @@ class LoginTest extends TestCase
         $response->assertSee('Iniciar Sesión');
     }
 
+    public function test_login_assets_use_https_behind_a_proxy(): void
+    {
+        $response = $this->withHeaders(['X-Forwarded-Proto' => 'https'])->get('/login');
+
+        $response->assertOk();
+        $response->assertSee('https://localhost/icon/icongym.png', false);
+    }
+
     public function test_user_can_login_with_correct_credentials(): void
     {
         $user = User::factory()->create([
