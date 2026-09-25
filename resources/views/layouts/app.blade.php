@@ -60,6 +60,7 @@
         .btn-accion:active { transform: scale(1.05); }
         .btn-accion:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
         @media (prefers-reduced-motion: reduce) { .btn-accion, .btn-accion:hover { transform: none; } }
+        main table.responsive-cards > tbody > tr.sigg-ver-mas-row { display: none; }
         @media (max-width: 767px) {
             main table.responsive-cards, main table.responsive-cards > tbody { display: block; width: 100%; }
             main table.responsive-cards > thead { display: none; }
@@ -249,8 +250,8 @@
                 fila.classList.add('sigg-con-toggle');
                 const toggleRow = document.createElement('tr');
                 toggleRow.className = 'sigg-ver-mas-row';
-                toggleRow.setAttribute('aria-hidden', 'true');
                 const toggleCell = document.createElement('td');
+                toggleCell.colSpan = fila.children.length;
                 toggleCell.appendChild(construirBotonToggle());
                 toggleRow.appendChild(toggleCell);
                 fila.parentNode.insertBefore(toggleRow, fila.nextSibling);
@@ -266,7 +267,7 @@
             function procesarTabla(tabla) {
                 if (tabla.classList.contains('responsive-cards')) {
                     tabla.querySelectorAll(':scope > tbody > tr:not(.sigg-ver-mas-row):not([colspan])').forEach(tr => {
-                        if (!tr.querySelector('td')) return;
+                        if (!tr.querySelector('td') || tr.querySelector(':scope > td[colspan]')) return;
                         const plan = leerPlanTh(tabla);
                         aplicarPlan(tr, plan);
                         if (tabla.dataset.card === 'compacta' && necesitaToggle(tr, plan)) {
@@ -280,7 +281,7 @@
                 if (!plan.length) return;
                 tabla.classList.add('responsive-cards');
                 tabla.querySelectorAll(':scope > tbody > tr').forEach(tr => {
-                    if (tr.matches('[colspan]') || !tr.querySelector('td')) return;
+                    if (!tr.querySelector('td') || tr.querySelector(':scope > td[colspan]')) return;
                     tr.querySelectorAll(':scope > td').forEach((td, i) => {
                         const p = plan[i];
                         if (!p) return;
