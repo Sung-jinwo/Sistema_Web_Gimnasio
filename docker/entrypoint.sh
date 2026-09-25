@@ -7,6 +7,12 @@ echo "Iniciando aplicación Laravel..."
 export PORT
 envsubst '${PORT}' < /etc/nginx/http.d/default.conf.template > /etc/nginx/http.d/default.conf
 
+echo "PORT recibido: ${PORT}"
+echo "Configuración de Nginx:"
+cat /etc/nginx/http.d/default.conf
+echo "Puertos escuchando:"
+netstat -lntp 2>/dev/null || ss -lntp 2>/dev/null || true
+
 if [ -z "${APP_KEY:-}" ]; then
     echo "APP_KEY es obligatorio en producción." >&2
     exit 1
