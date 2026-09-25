@@ -15,9 +15,7 @@ RUN npm ci
 COPY . .
 
 # Build de assets con Vite
-RUN npm run build && \
-    echo "===== ARCHIVOS GENERADOS POR VITE =====" && \
-    find /app/public/build -type f -maxdepth 3 -print
+RUN npm run build
 
 # ============================================
 # Etapa 2: Imagen final con PHP + Nginx

@@ -38,6 +38,11 @@ if [ "$RUN_MIGRATIONS" = "true" ]; then
     php artisan migrate --force
 fi
 
+if [ "${RUN_SEEDERS:-false}" = "true" ]; then
+    echo "Ejecutando seeders..."
+    php artisan db:seed --force
+fi
+
 if [ ! -L /var/www/html/public/storage ]; then
     php artisan storage:link
 fi
