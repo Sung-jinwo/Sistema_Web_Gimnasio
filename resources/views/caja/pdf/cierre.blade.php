@@ -129,7 +129,21 @@
         <p><strong>Fecha de Apertura:</strong> {{ $caja->fecha_apertura->format('d/m/Y H:i') }}</p>
         <p><strong>Fecha de Cierre:</strong> {{ $caja->fecha_cierre ? $caja->fecha_cierre->format('d/m/Y H:i') : 'N/A' }}</p>
         <p><strong>Monto Inicial:</strong> S/ {{ number_format($caja->monto_inicial, 2) }}</p>
+        <p><strong>Día operativo:</strong> {{ $caja->fecha_operativa?->format('d/m/Y') ?? $caja->fecha_apertura->format('d/m/Y') }}</p>
+        <p><strong>Revisado por:</strong> {{ $caja->revisadaPor->name ?? 'Cierre histórico' }}</p>
+        @if($caja->observacion_revision)<p><strong>Observación administrativa:</strong> {{ $caja->observacion_revision }}</p>@endif
     </div>
+
+    @if($caja->detallesCierre->isNotEmpty())
+    <div class="section">
+        <h2>CONCILIACIÓN POR MÉTODO</h2>
+        <table><thead><tr><th>Método</th><th class="text-right">Esperado</th><th class="text-right">Declarado</th><th class="text-right">Diferencia</th></tr></thead><tbody>
+            @foreach($caja->detallesCierre as $detalle)
+            <tr><td>{{ $detalle->metodo->metod_nombre }}</td><td class="text-right">S/ {{ number_format($detalle->monto_esperado, 2) }}</td><td class="text-right">S/ {{ number_format($detalle->monto_declarado, 2) }}</td><td class="text-right">S/ {{ number_format($detalle->diferencia, 2) }}</td></tr>
+            @endforeach
+        </tbody></table>
+    </div>
+    @endif
 
     <div class="section">
         <h2>VENTAS ({{ $ventas['cantidad'] }})</h2>
@@ -164,7 +178,7 @@
     </div>
 
     <div class="section">
-        <h2>PAGOS DE MEMBRESÍAS ({{ $pagos['cantidad'] }})</h2>
+        <h2>ABONOS RECIBIDOS ({{ $pagos['cantidad'] }})</h2>
         <table>
             <thead>
                 <tr>
@@ -179,14 +193,14 @@
                 @forelse($pagos['pagos'] as $pago)
                 <tr>
                     <td>{{ $pago->created_at->format('d/m/Y H:i') }}</td>
-                    <td>{{ $pago->alumno->nombreCompleto ?? '-' }}</td>
-                    <td>{{ $pago->membresia->mem_nombre ?? '-' }}</td>
+                    <td>{{ $pago->venta->alumno->nombreCompleto ?? 'Venta rápida' }}</td>
+                    <td>{{ $pago->venta->tipo_venta === 'membresia' ? ($pago->venta->membresiaAlumno->membresia->mem_nombre ?? 'Membresía') : 'Productos' }}</td>
                     <td>{{ $pago->metodo->metod_nombre ?? '-' }}</td>
-                    <td class="text-right">S/ {{ number_format($pago->pag_monto, 2) }}</td>
+                    <td class="text-right">S/ {{ number_format($pago->monto, 2) }}</td>
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="5" class="text-center">No hay pagos registrados</td>
+                    <td colspan="5" class="text-center">No hay abonos registrados</td>
                 </tr>
                 @endforelse
                 <tr style="background-color: #f5f5f5; font-weight: bold;">
@@ -225,6 +239,7 @@
                     <th>Fecha</th>
                     <th>Concepto</th>
                     <th>Categoría</th>
+                    <th>Método</th>
                     <th class="text-right">Monto</th>
                 </tr>
             </thead>
@@ -234,15 +249,16 @@
                     <td>{{ \Carbon\Carbon::parse($gasto->gas_fecha)->format('d/m/Y') }}</td>
                     <td>{{ $gasto->gas_concepto }}</td>
                     <td>{{ $gasto->categoria->cat_nombre ?? '-' }}</td>
+                    <td>{{ $gasto->metodo->metod_nombre ?? 'Efectivo (histórico)' }}</td>
                     <td class="text-right">S/ {{ number_format($gasto->gas_monto, 2) }}</td>
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="4" class="text-center">No hay gastos aprobados</td>
+                    <td colspan="5" class="text-center">No hay gastos aprobados</td>
                 </tr>
                 @endforelse
                 <tr style="background-color: #f5f5f5; font-weight: bold;">
-                    <td colspan="3" class="text-right">TOTAL GASTOS:</td>
+                    <td colspan="4" class="text-right">TOTAL GASTOS:</td>
                     <td class="text-right">S/ {{ number_format($gastos['total'], 2) }}</td>
                 </tr>
             </tbody>
@@ -259,6 +275,7 @@
                     <th class="text-right">Base</th>
                     <th class="text-right">Penalización</th>
                     <th class="text-right">Final</th>
+                    <th>Estado</th>
                 </tr>
             </thead>
             <tbody>
@@ -269,10 +286,11 @@
                     <td class="text-right">S/ {{ number_format($comision->comision_base, 2) }}</td>
                     <td class="text-right" style="color: #ef4444;">- S/ {{ number_format($comision->penalizacion, 2) }}</td>
                     <td class="text-right" style="color: #10b981; font-weight: bold;">S/ {{ number_format($comision->comision_final, 2) }}</td>
+                    <td>{{ $comision->estado_formato }}</td>
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="5" class="text-center">No hay comisiones registradas</td>
+                    <td colspan="6" class="text-center">No hay comisiones registradas</td>
                 </tr>
                 @endforelse
                 <tr style="background-color: #f5f5f5; font-weight: bold;">
@@ -280,6 +298,7 @@
                     <td class="text-right">S/ {{ number_format($comisiones['total_base'], 2) }}</td>
                     <td class="text-right" style="color: #ef4444;">- S/ {{ number_format($comisiones['total_penalizaciones'], 2) }}</td>
                     <td class="text-right" style="color: #10b981;">S/ {{ number_format($comisiones['total_final'], 2) }}</td>
+                    <td></td>
                 </tr>
             </tbody>
         </table>
@@ -295,7 +314,7 @@
                 </div>
                 <div class="summary-cell">
                     <h4>Total Ingresos</h4>
-                    <p class="positive">S/ {{ number_format($ventas['total'] + $pagos['total'], 2) }}</p>
+                    <p class="positive">S/ {{ number_format($pagos['total'], 2) }}</p>
                 </div>
                 <div class="summary-cell">
                     <h4>Total Egresos</h4>

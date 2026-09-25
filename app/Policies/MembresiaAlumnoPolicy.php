@@ -23,16 +23,12 @@ class MembresiaAlumnoPolicy
 
     public function create(User $user): bool
     {
-        return $user->hasRole(['Administrador', 'Local', 'Redes']);
+        return false;
     }
 
     public function update(User $user, MembresiaAlumno $membresiaAlumno): bool
     {
-        if ($user->hasRole('Administrador')) {
-            return true;
-        }
-
-        return $user->fksede === $membresiaAlumno->alumno->fksede && $user->hasRole(['Local', 'Redes']);
+        return false;
     }
 
     public function delete(User $user, MembresiaAlumno $membresiaAlumno): bool

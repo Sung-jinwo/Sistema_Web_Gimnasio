@@ -90,6 +90,7 @@ class ModalForm extends Component
     public function getHeaderColorClass(): string
     {
         return match ($this->headerColor) {
+            'pink' => 'from-pink-600 to-pink-700',
             'purple' => 'from-purple-600 to-purple-700',
             'blue' => 'from-blue-600 to-blue-700',
             'green' => 'from-green-600 to-green-700',

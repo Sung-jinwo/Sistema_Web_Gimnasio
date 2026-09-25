@@ -4,13 +4,6 @@
 @section('page-title','Auditoría')
 @section('page-subtitle','Trazabilidad de cambios críticos: quién, cuándo y qué modificó')
 <div class="container mx-auto px-4 py-6">
-    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-        <div>
-            <h1 class="text-2xl font-bold text-gray-900">Auditoría</h1>
-            <p class="text-gray-600">Registro de operaciones críticas del sistema</p>
-        </div>
-    </div>
-
     {{-- Filtros --}}
     <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
         <form method="GET" action="{{ route('auditoria.index') }}" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
@@ -60,15 +53,15 @@
     {{-- Tabla de Logs --}}
     <div class="bg-white rounded-lg shadow-sm overflow-hidden">
         <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
+            <table data-card="compacta" class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Usuario</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Acción</th>
+                        <th data-card-prioritario class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
+                        <th data-card-prioritario class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Usuario</th>
+                        <th data-card-prioritario class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Acción</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Módulo</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Modelo</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden md:table-cell">IP</th>
+                        <th data-card-oculto class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Modelo</th>
+                        <th data-card-oculto class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase hidden md:table-cell">IP</th>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Detalles</th>
                     </tr>
                 </thead>
@@ -95,7 +88,7 @@
                         <td class="px-4 py-3 text-sm text-gray-500">{{ $log->modelo }} #{{ $log->modelo_id }}</td>
                         <td class="px-4 py-3 text-sm text-gray-500 hidden md:table-cell">{{ $log->ip_address ?? '-' }}</td>
                         <td class="px-4 py-3 text-center">
-                            <a href="{{ route('auditoria.show', $log->id_audit_log) }}" class="text-blue-600 hover:text-blue-900" title="Ver detalles">
+                            <a href="{{ route('auditoria.show', $log->id_audit_log) }}" class="btn-accion text-blue-600 hover:text-blue-900" title="Ver detalles">
                                 <i class="fas fa-eye"></i>
                             </a>
                         </td>

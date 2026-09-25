@@ -17,7 +17,18 @@ class Caja extends Model
     protected $casts = [
         'fecha_apertura' => 'datetime',
         'fecha_cierre' => 'datetime',
+        'fecha_operativa' => 'date',
+        'enviado_cierre_at' => 'datetime',
+        'revisada_at' => 'datetime',
     ];
+
+    protected static function booted(): void
+    {
+        static::creating(function (Caja $caja) {
+            $caja->fecha_apertura ??= now();
+            $caja->fecha_operativa ??= $caja->fecha_apertura->toDateString();
+        });
+    }
 
     public function sede()
     {
@@ -32,6 +43,44 @@ class Caja extends Model
     public function movimientos()
     {
         return $this->hasMany(MovimientoCaja::class, 'fkcaja', 'id_caja');
+    }
+
+    public function ventas()
+    {
+        return $this->hasMany(Venta::class, 'fkcaja', 'id_caja');
+    }
+
+    public function abonos()
+    {
+        return $this->hasMany(Abono::class, 'fkcaja', 'id_caja');
+    }
+
+    public function gastos()
+    {
+        return $this->hasMany(Gasto::class, 'fkcaja', 'id_caja');
+    }
+
+    public function comisiones()
+    {
+        return $this->hasMany(Comision::class, 'fkcaja', 'id_caja');
+    }
+
+    public function detallesCierre()
+    {
+        return $this->hasMany(CajaCierreDetalle::class, 'fkcaja', 'id_caja');
+    }
+
+    public function revisadaPor()
+    {
+        return $this->belongsTo(User::class, 'revisada_por');
+    }
+
+    /**
+     * Caja abierta del empleado (una sola por usuario).
+     */
+    public static function abiertaDe(int $userId): ?self
+    {
+        return static::where('fkuser', $userId)->where('estado', 'abierta')->first();
     }
 
     public function getAbiertaAttribute(): bool
@@ -51,6 +100,9 @@ class Caja extends Model
     {
         $estados = [
             'abierta' => 'Abierta',
+            'pendiente_cierre' => 'Pendiente de cierre',
+            'pendiente_revision' => 'Pendiente de revisión',
+            'observada' => 'Observada',
             'cerrada' => 'Cerrada',
             'anulada' => 'Anulada',
         ];
@@ -74,7 +126,7 @@ class Caja extends Model
             return '-';
         }
 
-        $color = $this->diferencia > 0 ? 'text-green-600' : ($this->diferencia < 0 ? 'text-red-600' : 'text-gray-600');
+        $color = $this->diferencia > 0 ? 'text-red-600' : ($this->diferencia < 0 ? 'text-amber-600' : 'text-gray-600');
 
         return $color;
     }

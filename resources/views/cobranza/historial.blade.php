@@ -1,0 +1,13 @@
+@extends('layouts.app')
+@section('title', 'Historial de abonos - SIGG')
+@section('page-title', 'Historial de abonos')
+@section('page-subtitle', 'Cobros recibidos por ventas de productos y membresías')
+@section('content')
+<div class="space-y-5">
+    <div class="flex flex-col sm:flex-row gap-3 justify-between"><a href="{{ route('cobranza.index') }}" class="inline-flex px-4 py-2 border rounded-lg bg-white"><i class="fas fa-arrow-left mr-2 mt-1"></i>Volver a Cobranza</a><form class="flex flex-col sm:flex-row gap-2"><input name="search" value="{{ request('search') }}" placeholder="Alumno o DNI" class="px-4 py-2 border rounded-lg">@if(auth()->user()->hasRole('Administrador'))<select name="sede" class="px-4 py-2 border rounded-lg"><option value="">Todas las sedes</option>@foreach($sedes as $sede)<option value="{{ $sede->id_sede }}" @selected(request('sede') == $sede->id_sede)>{{ $sede->sede_nombre }}</option>@endforeach</select>@endif<button class="px-4 py-2 bg-gray-800 text-white rounded-lg">Filtrar</button></form></div>
+    <div class="bg-white rounded-lg shadow-sm overflow-hidden"><div class="overflow-x-auto"><table data-card="compacta" class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50"><tr><th data-card-oculto class="px-4 py-3 text-left text-xs uppercase text-gray-500">Fecha</th><th data-card-oculto class="px-4 py-3 text-left text-xs uppercase text-gray-500">Venta</th><th data-card-prioritario class="px-4 py-3 text-left text-xs uppercase text-gray-500">Alumno</th><th class="px-4 py-3 text-left text-xs uppercase text-gray-500">Método</th><th data-card-prioritario class="px-4 py-3 text-right text-xs uppercase text-gray-500">Monto</th><th data-card-oculto class="px-4 py-3 text-left text-xs uppercase text-gray-500">Usuario</th></tr></thead>
+        <tbody class="divide-y">@forelse($abonos as $abono)<tr><td class="px-4 py-3 text-sm">{{ $abono->fecha_abono->format('d/m/Y H:i') }}</td><td class="px-4 py-3 text-sm font-medium">#{{ $abono->fkventa }}</td><td class="px-4 py-3 text-sm">{{ $abono->venta->alumno->nombreCompleto ?? 'Venta rápida' }}</td><td class="px-4 py-3 text-sm">{{ $abono->metodo->metod_nombre ?? '-' }}</td><td class="px-4 py-3 text-sm text-right font-bold text-green-700">S/ {{ number_format($abono->monto, 2) }}</td><td class="px-4 py-3 text-sm">{{ $abono->user->name ?? '-' }}</td></tr>@empty<tr><td colspan="6" class="px-4 py-8 text-center text-gray-500">No hay abonos registrados.</td></tr>@endforelse</tbody>
+    </table></div>@if($abonos->hasPages())<div class="px-4 py-3 border-t">{{ $abonos->links() }}</div>@endif</div>
+</div>
+@endsection

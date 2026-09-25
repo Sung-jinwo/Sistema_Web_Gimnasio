@@ -1,12 +1,11 @@
 @extends('layouts.app')
 
+@section('page-title', 'Reporte de Caja')
+@section('page-subtitle', 'Cierres de caja y diferencias')
+
 @section('content')
 <div class="container mx-auto px-4 py-6">
-    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-        <div>
-            <h1 class="text-2xl font-bold text-gray-900">Reporte de Caja</h1>
-            <p class="text-gray-600">Cierres de caja y diferencias</p>
-        </div>
+    <div class="flex justify-end mb-6">
         <a href="{{ route('reportes.index') }}" class="inline-flex items-center px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition">
             <i class="fas fa-arrow-left mr-2"></i> Volver
         </a>
@@ -76,18 +75,18 @@
     {{-- Tabla de Cierres --}}
     <div class="bg-white rounded-lg shadow-sm overflow-hidden">
         <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
+            <table data-card="compacta" class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Empleado</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Sede</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Apertura</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cierre</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Inicial</th>
+                        <th data-card-prioritario class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Empleado</th>
+                        <th data-card-oculto class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Sede</th>
+                        <th data-card-prioritario class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Apertura</th>
+                        <th data-card-oculto class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Cierre</th>
+                        <th data-card-oculto class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Inicial</th>
                         <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Esperado</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Entregado</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Diferencia</th>
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Estado</th>
+                        <th data-card-oculto class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Entregado</th>
+                        <th data-card-prioritario class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Diferencia</th>
+                        <th data-card-prioritario class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Estado</th>
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">

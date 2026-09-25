@@ -6,82 +6,59 @@
 @section('content')
 <div class="container mx-auto px-4 py-6">
 
-    {{-- Métricas principales --}}
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-        <x-stat-card 
-            title="Ventas Hoy" 
-            value="S/ {{ number_format($ventasHoy, 2) }}" 
-            icon="fa-shopping-cart" 
-            color="blue" 
-        />
-        <x-stat-card 
-            title="Ventas del Mes" 
-            value="S/ {{ number_format($ventasMes, 2) }}" 
-            icon="fa-chart-line" 
-            color="green" 
-        />
-        <x-stat-card 
-            title="Alumnos Activos" 
-            value="{{ number_format($alumnosActivos) }}" 
-            icon="fa-users" 
-            color="purple" 
-        />
-        <x-stat-card 
-            title="Asistencias Hoy" 
-            value="{{ number_format($asistenciasHoy) }}" 
-            icon="fa-calendar-check" 
-            color="indigo" 
-        />
-    </div>
-
-    {{-- Membresías --}}
+    {{-- Indicadores puntuales --}}
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
-        <x-stat-card 
-            title="Membresías Activas" 
-            value="{{ number_format($membresiasActivas) }}" 
-            icon="fa-id-card" 
-            color="green" 
+        <x-stat-card
+            title="Ingresos del Mes"
+            value="S/ {{ number_format($ingresosMes, 2) }}"
+            icon="fa-dollar-sign"
+            color="green"
+            subtitle="{{ $variacionIngresos === null ? 'Sin referencia previa' : (($variacionIngresos >= 0 ? '+' : '') . $variacionIngresos . '% vs mes anterior') }}"
         />
-        <x-stat-card 
-            title="Por Vencer (5 días)" 
-            value="{{ number_format($membresiasPorVencer) }}" 
-            icon="fa-clock" 
-            color="yellow" 
+        <x-stat-card
+            title="Alumnos Registrados"
+            value="{{ number_format($alumnosActivos) }}"
+            icon="fa-users"
+            color="purple"
+            subtitle="{{ number_format($nuevosAlumnosMes) }} nuevos este mes"
         />
-        <x-stat-card 
-            title="Membresías Vencidas" 
-            value="{{ number_format($membresiasVencidas) }}" 
-            icon="fa-exclamation-triangle" 
-            color="red" 
+        <x-stat-card
+            title="Ventas Hoy"
+            value="S/ {{ number_format($ventasHoy, 2) }}"
+            icon="fa-shopping-cart"
+            color="blue"
         />
     </div>
 
-    {{-- Finanzas --}}
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-        <x-stat-card 
-            title="Ingresos del Mes" 
-            value="S/ {{ number_format($ingresosMes, 2) }}" 
-            icon="fa-dollar-sign" 
-            color="green" 
+    {{-- Gráficos --}}
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+        <div class="lg:col-span-2">
+            <x-grafico
+                titulo="Ingresos vs Gastos"
+                subtitulo="Últimos 6 meses"
+                tipo="bar"
+                :etiquetas="$graficoFinanzas['etiquetas']"
+                :series="[['etiqueta' => 'Ingresos', 'datos' => $graficoFinanzas['ingresos']], ['etiqueta' => 'Gastos', 'datos' => $graficoFinanzas['gastos']]]"
+                moneda
+            />
+        </div>
+        <x-grafico
+            titulo="Membresías por estado"
+            tipo="doughnut"
+            :etiquetas="$graficoMembresias['etiquetas']"
+            :series="[['etiqueta' => 'Membresías', 'datos' => $graficoMembresias['datos']]]"
+            altura="260px"
         />
-        <x-stat-card 
-            title="Gastos del Mes" 
-            value="S/ {{ number_format($gastosMes, 2) }}" 
-            icon="fa-receipt" 
-            color="red" 
-        />
-        <x-stat-card 
-            title="Comisiones del Mes" 
-            value="S/ {{ number_format($comisionesMes, 2) }}" 
-            icon="fa-percentage" 
-            color="orange" 
-        />
-        <x-stat-card 
-            title="Productos Vendidos" 
-            value="{{ number_format($productosVendidos) }}" 
-            icon="fa-box" 
-            color="blue" 
-            subtitle="Este mes"
+    </div>
+    <div class="mb-6">
+        <x-grafico
+            titulo="Ventas por sede"
+            subtitulo="Mes actual"
+            tipo="bar"
+            :etiquetas="$graficoVentasSede['etiquetas']"
+            :series="[['etiqueta' => 'Ventas', 'datos' => $graficoVentasSede['datos']]]"
+            moneda
+            altura="260px"
         />
     </div>
 

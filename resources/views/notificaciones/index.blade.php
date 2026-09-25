@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
+@section('title', 'Notificaciones')
+
 @section('content')
 <div class="container mx-auto px-4 py-6">
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">

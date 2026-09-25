@@ -109,14 +109,15 @@ class ReportService
         }
 
         $comisiones = $query->orderByDesc('created_at')->get();
+        $validas = $comisiones->where('estado', '!=', \App\Models\Comision::ESTADO_ANULADA);
 
         return [
             'comisiones' => $comisiones,
-            'total_base' => $comisiones->sum('comision_base'),
-            'total_penalizaciones' => $comisiones->sum('penalizacion'),
-            'total_final' => $comisiones->sum('comision_final'),
+            'total_base' => $validas->sum('comision_base'),
+            'total_penalizaciones' => $validas->sum('penalizacion'),
+            'total_final' => $validas->sum('comision_final'),
             'cantidad' => $comisiones->count(),
-            'por_empleado' => $comisiones->groupBy(fn ($c) => $c->usuario->name ?? 'N/A')->map(fn ($group) => [
+            'por_empleado' => $validas->groupBy(fn ($c) => $c->usuario->name ?? 'N/A')->map(fn ($group) => [
                 'base' => $group->sum('comision_base'),
                 'penalizacion' => $group->sum('penalizacion'),
                 'final' => $group->sum('comision_final'),

@@ -1,12 +1,10 @@
 @extends('layouts.app')
 
+@section('page-title','Dashboard Asistencia')
+@section('page-subtitle','Resumen de asistencias del día')
+
 @section('content')
 <div class="container mx-auto px-4 py-6">
-    <div class="mb-6">
-        <h1 class="text-2xl font-bold text-gray-900">Dashboard Asistencia</h1>
-        <p class="text-gray-600">Resumen de asistencias del día</p>
-    </div>
-
     {{-- Métrica principal --}}
     <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
         <x-stat-card 

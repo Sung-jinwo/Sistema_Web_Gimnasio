@@ -24,14 +24,14 @@
 
     <div class="bg-white rounded-lg shadow-sm overflow-hidden">
         <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
+            <table data-card="compacta" class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">Dirección</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">Teléfono</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">Responsable</th>
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+                        <th data-card-prioritario class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
+                        <th data-card-oculto class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">Dirección</th>
+                        <th data-card-oculto class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">Teléfono</th>
+                        <th data-card-oculto class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">Responsable</th>
+                        <th data-card-prioritario class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
                     </tr>
                 </thead>
@@ -52,14 +52,14 @@
                         <td class="px-4 py-3 text-center">
                             <div class="flex justify-center gap-2">
                                 @can('update', $sede)
-                                <button type="button" onclick="editSede({{ $sede->id_sede }})" class="text-blue-600 hover:text-blue-900" title="Editar">
-                                    <i class="fas fa-edit"></i>
+                                <button type="button" onclick="editSede({{ $sede->id_sede }})" class="btn-accion text-green-600 hover:text-green-900" title="Editar">
+                                    <i class="fas fa-pen-to-square"></i>
                                 </button>
                                 @endcan
                                 @can('toggleEstado', $sede)
                                 <form action="{{ route('sedes.toggle', $sede->id_sede) }}" method="POST" class="inline">
                                     @csrf
-                                    <button type="submit" class="{{ $sede->sede_estado ? 'text-yellow-600 hover:text-yellow-900' : 'text-green-600 hover:text-green-900' }}" title="{{ $sede->sede_estado ? 'Desactivar' : 'Activar' }}">
+                                    <button type="submit" class="btn-accion {{ $sede->sede_estado ? 'text-yellow-600 hover:text-yellow-900' : 'text-green-600 hover:text-green-900' }}" title="{{ $sede->sede_estado ? 'Desactivar' : 'Activar' }}">
                                         <i class="fas {{ $sede->sede_estado ? 'fa-toggle-on' : 'fa-toggle-off' }}"></i>
                                     </button>
                                 </form>

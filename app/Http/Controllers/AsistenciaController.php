@@ -3,13 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Http\Requests\AsistenciaRequest;
-use App\Models\Alumno;
 use App\Models\Asistencia;
-use App\Models\Pago;
+use App\Services\AttendanceService;
 use Illuminate\Http\Request;
 
 class AsistenciaController extends Controller
 {
+    public function __construct(private readonly AttendanceService $attendanceService) {}
+
     public function index(Request $request)
     {
         $query = Asistencia::with(['alumno', 'user', 'sede'])
@@ -17,9 +18,13 @@ class AsistenciaController extends Controller
 
         if ($request->has('search') && $request->search) {
             $query->whereHas('alumno', function ($q) use ($request) {
-                $q->where('alum_nombre', 'like', '%'.$request->search.'%')
-                    ->orWhere('alum_apellido', 'like', '%'.$request->search.'%');
+                $q->where('alum_codigo', 'like', '%'.$request->search.'%')
+                    ->orWhere('alum_numDoc', 'like', '%'.$request->search.'%');
             });
+        }
+
+        if (in_array($request->tipo_ingreso, ['codigo', 'dni', 'qr', 'huella'], true)) {
+            $query->where('tipo_ingreso', $request->tipo_ingreso);
         }
 
         if ($request->has('fecha') && $request->fecha) {
@@ -35,40 +40,51 @@ class AsistenciaController extends Controller
         return view('asistencia.index', compact('asistencias'));
     }
 
-    public function create()
-    {
-        $alumnos = Alumno::where('fksede', auth()->user()->fksede)
-            ->orderBy('alum_nombre')
-            ->get();
-
-        return view('asistencia.create', compact('alumnos'));
-    }
-
     public function store(AsistenciaRequest $request)
     {
-        $fkalum = $request->validated()['fkalum'];
+        $data = $request->validated();
+        $alumno = $this->attendanceService->buscarAlumno($data['codigo_documento'], $data['tipo_ingreso']);
 
-        $ultimoPago = Pago::where('fkalum', $fkalum)
-            ->where('tipo_membresia', 'principal')
-            ->orderBy('created_at', 'desc')
-            ->first();
-
-        if (! $ultimoPago || $ultimoPago->pag_fin < now()->format('Y-m-d')) {
-            if ($request->expectsJson()) {
-                return response()->json(['error' => 'La membresia del alumno esta vencida'], 422);
-            }
-
+        if (! $alumno) {
             return redirect()->back()
-                ->withErrors(['error' => 'La membresia del alumno esta vencida'])
+                ->withErrors(['codigo_documento' => 'No se encontró un alumno con los datos ingresados.'])
                 ->withInput();
         }
 
-        $data = $request->validated();
-        $data['fkuser'] = auth()->id();
-        $data['fksede'] = auth()->user()->fksede;
-        $data['visi_fecha'] = now();
+        if (! $this->attendanceService->validarAlumnoActivo($alumno)) {
+            return redirect()->back()
+                ->withErrors(['codigo_documento' => 'El alumno está inactivo.'])
+                ->withInput();
+        }
 
-        $asistencia = Asistencia::create($data);
+        if (! $this->attendanceService->validarMembresiaVigente($alumno)) {
+            if ($request->expectsJson()) {
+                return response()->json(['error' => 'El alumno no tiene una membresía vigente'], 422);
+            }
+
+            return redirect()->back()
+                ->withErrors(['codigo_documento' => 'El alumno no tiene una membresía vigente.'])
+                ->withInput();
+        }
+
+        if ($congelado = $this->attendanceService->congelamientoBloqueante($alumno)) {
+            $mensaje = 'Su membresía está congelada hasta el '.$congelado->fecha_fin->format('d/m/Y').'. No se permite el ingreso durante el congelamiento.';
+
+            if ($request->expectsJson()) {
+                return response()->json(['error' => $mensaje], 422);
+            }
+
+            return redirect()->back()
+                ->withErrors(['codigo_documento' => $mensaje])
+                ->withInput();
+        }
+
+        $asistencia = $this->attendanceService->registrarAsistencia(
+            $alumno,
+            auth()->user()->fksede,
+            $data['tipo_ingreso'],
+            auth()->id()
+        );
 
         if ($request->expectsJson()) {
             return response()->json([
@@ -78,39 +94,7 @@ class AsistenciaController extends Controller
             ]);
         }
 
-        return redirect()->route('asistencia.index')
+        return redirect()->route('asistencias.index')
             ->with('success', 'Asistencia registrada exitosamente');
-    }
-
-    public function show(string $id)
-    {
-        $asistencia = Asistencia::with(['alumno', 'user', 'sede'])->findOrFail($id);
-
-        return view('asistencia.show', compact('asistencia'));
-    }
-
-    public function destroy(Request $request, string $id)
-    {
-        try {
-            $asistencia = Asistencia::findOrFail($id);
-            $asistencia->delete();
-
-            if ($request->expectsJson()) {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Asistencia eliminada exitosamente',
-                ]);
-            }
-
-            return redirect()->route('asistencia.index')
-                ->with('success', 'Asistencia eliminada exitosamente');
-        } catch (\Illuminate\Database\Eloquent\ModelNotFoundException $e) {
-            if ($request->expectsJson()) {
-                return response()->json(['error' => 'Asistencia no encontrada'], 404);
-            }
-
-            return redirect()->route('asistencia.index')
-                ->withErrors(['error' => 'Asistencia no encontrada']);
-        }
     }
 }

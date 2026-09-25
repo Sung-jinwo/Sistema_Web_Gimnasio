@@ -46,9 +46,9 @@ class PenaltyServiceTest extends TestCase
         );
 
         $this->assertEquals(7, $resultado['dias_retraso']);
-        $this->assertEquals(0, $resultado['semanas_retraso']);
-        $this->assertEquals(0, $resultado['penalizacion']);
-        $this->assertEquals(100.00, $resultado['comision_final']);
+        $this->assertEquals(1, $resultado['semanas_retraso']);
+        $this->assertEquals(5.00, $resultado['penalizacion']);
+        $this->assertEquals(95.00, $resultado['comision_final']);
     }
 
     public function test_penalty_after_tolerance_period_one_week(): void
@@ -64,9 +64,9 @@ class PenaltyServiceTest extends TestCase
         );
 
         $this->assertEquals(14, $resultado['dias_retraso']);
-        $this->assertEquals(1, $resultado['semanas_retraso']);
-        $this->assertEquals(5.00, $resultado['penalizacion']);
-        $this->assertEquals(95.00, $resultado['comision_final']);
+        $this->assertEquals(2, $resultado['semanas_retraso']);
+        $this->assertEquals(10.00, $resultado['penalizacion']);
+        $this->assertEquals(90.00, $resultado['comision_final']);
     }
 
     public function test_penalty_after_tolerance_period_two_weeks(): void
@@ -82,9 +82,9 @@ class PenaltyServiceTest extends TestCase
         );
 
         $this->assertEquals(21, $resultado['dias_retraso']);
-        $this->assertEquals(2, $resultado['semanas_retraso']);
-        $this->assertEquals(10.00, $resultado['penalizacion']);
-        $this->assertEquals(90.00, $resultado['comision_final']);
+        $this->assertEquals(3, $resultado['semanas_retraso']);
+        $this->assertEquals(15.00, $resultado['penalizacion']);
+        $this->assertEquals(85.00, $resultado['comision_final']);
     }
 
     public function test_penalty_cannot_exceed_commission(): void

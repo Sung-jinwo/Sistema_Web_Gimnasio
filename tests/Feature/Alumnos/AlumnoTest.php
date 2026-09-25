@@ -226,6 +226,80 @@ class AlumnoTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertSee($alumno->alum_nombre);
+        $response->assertSee('('.$alumno->alum_eda.' años)', false);
+    }
+
+    public function test_edit_route_redirects_to_student_profile_with_modal_open(): void
+    {
+        $admin = User::factory()->create();
+        $admin->assignRole('Administrador');
+
+        $sede = Sede::factory()->create();
+        $alumno = Alumno::factory()->create(['fksede' => $sede->id_sede]);
+
+        $response = $this->actingAs($admin)->get("/alumnos/{$alumno->id_alumno}/edit");
+
+        $response->assertRedirect(route('alumnos.show', [
+            'alumno' => $alumno->id_alumno,
+            'editar' => 1,
+        ]));
+
+        $this->followRedirects($response)
+            ->assertOk()
+            ->assertSee('Editar Alumno')
+            ->assertSee('showEditModal: true', false);
+    }
+
+    public function test_fila_muestra_boton_vender_membresia_segun_permiso(): void
+    {
+        $sede = Sede::factory()->create();
+        $alumno = Alumno::factory()->create(['fksede' => $sede->id_sede]);
+        $local = User::factory()->create(['fksede' => $sede->id_sede]);
+        $local->assignRole('Local');
+        $redes = User::factory()->create(['fksede' => $sede->id_sede]);
+        $redes->assignRole('Redes');
+
+        $this->actingAs($local)->get('/alumnos')->assertOk()
+            ->assertSee('Vender membresía')
+            ->assertSee('/ventas?dni='.$alumno->alum_numDoc, false);
+
+        $this->actingAs($redes)->get('/alumnos')->assertOk()
+            ->assertSee('Vender membresía');
+
+        $asistencia = User::factory()->create(['fksede' => $sede->id_sede]);
+        $asistencia->assignRole('Asistencia');
+        $this->actingAs($asistencia)->get('/alumnos')->assertOk()
+            ->assertDontSee('Vender membresía');
+    }
+
+    public function test_boton_vender_membresia_solo_si_falta_o_esta_por_vencer(): void
+    {
+        $sede = Sede::factory()->create();
+        $local = User::factory()->create(['fksede' => $sede->id_sede]);
+        $local->assignRole('Local');
+        $plan = \App\Models\Membresia::factory()->create(['mem_duracion' => 30]);
+
+        $sinMembresia = Alumno::factory()->create(['fksede' => $sede->id_sede, 'alum_numDoc' => '11111111']);
+        $vigente = Alumno::factory()->create(['fksede' => $sede->id_sede, 'alum_numDoc' => '22222222']);
+        \App\Models\MembresiaAlumno::create([
+            'fkalumno' => $vigente->id_alumno, 'fkmem' => $plan->id_mem,
+            'fecha_inicio' => today()->subDays(5)->format('Y-m-d'),
+            'fecha_fin' => today()->addDays(20)->format('Y-m-d'),
+            'precio_vendido' => $plan->mem_precio, 'estado' => 'activa',
+        ]);
+        $porVencer = Alumno::factory()->create(['fksede' => $sede->id_sede, 'alum_numDoc' => '33333333']);
+        \App\Models\MembresiaAlumno::create([
+            'fkalumno' => $porVencer->id_alumno, 'fkmem' => $plan->id_mem,
+            'fecha_inicio' => today()->subDays(27)->format('Y-m-d'),
+            'fecha_fin' => today()->addDays(3)->format('Y-m-d'),
+            'precio_vendido' => $plan->mem_precio, 'estado' => 'activa',
+        ]);
+
+        $html = $this->actingAs($local)->get('/alumnos')->assertOk()->getContent();
+
+        $this->assertStringContainsString('/ventas?dni=11111111', $html);
+        $this->assertStringContainsString('/ventas?dni=33333333', $html);
+        $this->assertStringNotContainsString('/ventas?dni=22222222', $html);
     }
 
     public function test_dni_must_be_exactly_8_digits(): void

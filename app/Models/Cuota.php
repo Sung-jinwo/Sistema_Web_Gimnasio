@@ -23,6 +23,11 @@ class Cuota extends Model
         return $this->belongsTo(Pago::class, 'fkpago', 'id_pag');
     }
 
+    public function abonos()
+    {
+        return $this->hasMany(Abono::class, 'fkcuota', 'id_cuota');
+    }
+
     public function scopePendientes($query)
     {
         return $query->where('estado', 'pendiente');

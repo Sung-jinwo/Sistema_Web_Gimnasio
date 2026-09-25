@@ -16,8 +16,8 @@ class GastoRequest extends FormRequest
         $rules = [
             'gas_concepto' => 'required|string|max:200',
             'gas_monto' => 'required|numeric|min:0.01',
-            'gas_fecha' => 'required|date',
             'fkcategoria' => 'nullable|exists:categorias_gasto,id_categoria',
+            'fkmetodo' => $this->isMethod('post') ? 'required|exists:metodos_pago,id_metod' : 'nullable|exists:metodos_pago,id_metod',
             'gas_observacion' => 'nullable|string',
         ];
 
@@ -37,9 +37,9 @@ class GastoRequest extends FormRequest
             'gas_monto.required' => 'El monto del gasto es obligatorio.',
             'gas_monto.numeric' => 'El monto debe ser un valor numérico.',
             'gas_monto.min' => 'El monto debe ser al menos 0.01.',
-            'gas_fecha.required' => 'La fecha del gasto es obligatoria.',
-            'gas_fecha.date' => 'La fecha debe ser una fecha válida.',
             'fkcategoria.exists' => 'La categoría de gasto seleccionada no es válida.',
+            'fkmetodo.required' => 'Debes indicar el método usado para pagar el gasto.',
+            'fkmetodo.exists' => 'El método de pago seleccionado no es válido.',
             'gas_observacion.string' => 'La observación debe ser texto.',
             'motivo_rechazo.required_if' => 'Debe ingresar un motivo para rechazar el gasto.',
             'motivo_rechazo.string' => 'El motivo debe ser texto.',

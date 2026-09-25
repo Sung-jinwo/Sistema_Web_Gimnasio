@@ -9,7 +9,7 @@ class CajaPolicy
 {
     public function viewAny(User $user): bool
     {
-        return $user->hasRole(['Administrador', 'Local']);
+        return $user->hasRole(['Administrador', 'Local', 'Redes']);
     }
 
     public function view(User $user, Caja $caja): bool
@@ -18,25 +18,40 @@ class CajaPolicy
             return true;
         }
 
-        return $user->fksede === $caja->fksede;
+        return $user->id === $caja->fkuser;
     }
 
     public function abrir(User $user): bool
     {
-        return $user->hasRole(['Administrador', 'Local']);
+        return $user->hasRole(['Administrador', 'Local', 'Redes']);
     }
 
     public function cerrar(User $user, Caja $caja): bool
     {
-        if (! $user->hasRole(['Administrador', 'Local'])) {
+        if (! $user->hasRole(['Administrador', 'Local', 'Redes'])) {
             return false;
         }
 
-        if ($user->hasRole('Local') && $user->fksede !== $caja->fksede) {
+        if (! in_array($caja->estado, ['abierta', 'pendiente_cierre', 'observada'], true)) {
             return false;
         }
 
-        return $caja->estado === 'abierta';
+        // El empleado solo cierra su propia caja; el Administrador puede cerrar en representación.
+        if (! $user->hasRole('Administrador') && (int) $caja->fkuser !== (int) $user->id) {
+            return false;
+        }
+
+        return true;
+    }
+
+    public function aprobar(User $user, Caja $caja): bool
+    {
+        return $user->hasRole('Administrador') && $caja->estado === 'pendiente_revision';
+    }
+
+    public function observar(User $user, Caja $caja): bool
+    {
+        return $this->aprobar($user, $caja);
     }
 
     public function anular(User $user, Caja $caja): bool
@@ -50,6 +65,6 @@ class CajaPolicy
             return true;
         }
 
-        return $user->fksede === $caja->fksede && $caja->estado === 'cerrada';
+        return (int) $caja->fkuser === (int) $user->id && $caja->estado === 'cerrada';
     }
 }

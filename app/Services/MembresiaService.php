@@ -15,7 +15,11 @@ class MembresiaService
             return $fechaFinManual;
         }
 
-        return $fechaInicio->copy()->addDays($duracion);
+        if ($duracion < 1) {
+            throw new \InvalidArgumentException('La duración de la membresía debe ser al menos de un día.');
+        }
+
+        return $fechaInicio->copy()->addDays($duracion - 1);
     }
 
     public function asignarMembresia(
@@ -23,15 +27,23 @@ class MembresiaService
         int $membresiaId,
         string $modalidad,
         ?string $fechaInicio = null,
-        ?string $fechaFin = null
+        ?string $fechaFin = null,
+        ?int $ventaId = null
     ): MembresiaAlumno {
-        return DB::transaction(function () use ($alumnoId, $membresiaId, $modalidad, $fechaInicio, $fechaFin) {
+        if (! $ventaId) {
+            throw new \LogicException('Toda membresía asignada debe estar vinculada a una venta.');
+        }
+
+        return DB::transaction(function () use ($alumnoId, $membresiaId, $modalidad, $fechaInicio, $fechaFin, $ventaId) {
             $membresia = Membresia::findOrFail($membresiaId);
 
-            if ($membresia->modalidad === 'por_fechas') {
+            $tieneRangoFijo = $membresia->fecha_inicio_fija && $membresia->fecha_fin_fija;
+            if ($tieneRangoFijo) {
                 $fechaInicio = $membresia->fecha_inicio_fija?->format('Y-m-d');
                 $fechaFin = $membresia->fecha_fin_fija?->format('Y-m-d');
                 $modalidad = 'por_fechas';
+            } else {
+                $fechaFin = null;
             }
 
             $fechaInicioCarbon = $fechaInicio ? Carbon::parse($fechaInicio) : Carbon::now();
@@ -45,6 +57,7 @@ class MembresiaService
             );
 
             return MembresiaAlumno::create([
+                'fkventa' => $ventaId,
                 'fkalumno' => $alumnoId,
                 'fkmem' => $membresiaId,
                 'fecha_inicio' => $fechaInicioCarbon->format('Y-m-d'),

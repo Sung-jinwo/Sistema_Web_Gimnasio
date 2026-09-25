@@ -8,6 +8,7 @@ use App\Models\Caja;
 use App\Models\Comision;
 use App\Models\Gasto;
 use App\Models\MembresiaAlumno;
+use App\Models\User;
 use App\Models\Venta;
 use App\Services\FollowUpService;
 use App\Services\NotificationService;
@@ -44,6 +45,18 @@ class DashboardController extends Controller
 
         if ($user->hasRole('Asistencia')) {
             return $this->asistencia();
+        }
+
+        // Respaldo para usuarios legacy con columna `rol` pero sin rol Spatie asignado.
+        switch ((int) $user->rol) {
+            case User::ROL_ADMIN:
+                return $this->admin();
+            case User::ROL_EMPLEDO_LOCAL:
+                return $this->local();
+            case User::ROL_REDES:
+                return $this->redes();
+            case User::ROL_ASISTENCIA:
+                return $this->asistencia();
         }
 
         abort(403, 'No tienes permiso para acceder al dashboard.');
@@ -99,26 +112,90 @@ class DashboardController extends Controller
 
         $comisionesMes = Comision::whereMonth('created_at', $mesActual)
             ->whereYear('created_at', $anioActual)
+            ->where('estado', '!=', Comision::ESTADO_ANULADA)
             ->sum('comision_final');
 
         $cierresPendientes = Caja::where('estado', 'abierta')->count();
 
         $asistenciasHoy = Asistencia::whereDate('visi_fecha', $hoy)->count();
 
+        $mesAnterior = now()->subMonth();
+        $ingresosMesAnterior = Venta::whereMonth('created_at', $mesAnterior->month)
+            ->whereYear('created_at', $mesAnterior->year)
+            ->where('estado_venta', 'completado')
+            ->sum('venta_total');
+        $variacionIngresos = $ingresosMesAnterior > 0
+            ? round(($ingresosMes - $ingresosMesAnterior) / $ingresosMesAnterior * 100, 1)
+            : null;
+
+        $nuevosAlumnosMes = Alumno::whereMonth('created_at', $mesActual)
+            ->whereYear('created_at', $anioActual)
+            ->count();
+
+        $graficoFinanzas = $this->serieIngresosVsGastos();
+        $graficoMembresias = [
+            'etiquetas' => ['Activas', 'Por vencer', 'Vencidas'],
+            'datos' => [(int) $membresiasActivas, (int) $membresiasPorVencer, (int) $membresiasVencidas],
+        ];
+        $graficoVentasSede = $this->serieVentasPorSede($mesActual, $anioActual);
+
         return view('dashboard.admin', compact(
             'ventasHoy',
-            'ventasMes',
             'alumnosActivos',
-            'membresiasActivas',
+            'nuevosAlumnosMes',
+            'ingresosMes',
+            'variacionIngresos',
             'membresiasPorVencer',
             'membresiasVencidas',
-            'productosVendidos',
-            'ingresosMes',
-            'gastosMes',
-            'comisionesMes',
             'cierresPendientes',
-            'asistenciasHoy'
+            'graficoFinanzas',
+            'graficoMembresias',
+            'graficoVentasSede'
         ));
+    }
+
+    /**
+     * Ingresos (ventas completadas) vs gastos aprobados de los últimos 6 meses.
+     */
+    protected function serieIngresosVsGastos(): array
+    {
+        $etiquetas = [];
+        $ingresos = [];
+        $gastos = [];
+
+        for ($i = 5; $i >= 0; $i--) {
+            $fecha = now()->subMonths($i);
+            $etiquetas[] = ucfirst($fecha->locale('es')->shortMonthName);
+            $ingresos[] = (float) Venta::whereMonth('created_at', $fecha->month)
+                ->whereYear('created_at', $fecha->year)
+                ->where('estado_venta', 'completado')
+                ->sum('venta_total');
+            $gastos[] = (float) Gasto::whereMonth('gas_fecha', $fecha->month)
+                ->whereYear('gas_fecha', $fecha->year)
+                ->where('estado', 'aprobado')
+                ->sum('gas_monto');
+        }
+
+        return compact('etiquetas', 'ingresos', 'gastos');
+    }
+
+    /**
+     * Ventas completadas del mes agrupadas por sede.
+     */
+    protected function serieVentasPorSede(int $mes, int $anio): array
+    {
+        $filas = Venta::with('sede:id_sede,sede_nombre')
+            ->whereMonth('created_at', $mes)
+            ->whereYear('created_at', $anio)
+            ->where('estado_venta', 'completado')
+            ->selectRaw('fksede, SUM(venta_total) as total')
+            ->groupBy('fksede')
+            ->get();
+
+        return [
+            'etiquetas' => $filas->map(fn ($f) => $f->sede?->sede_nombre ?? 'Sin sede')->all(),
+            'datos' => $filas->map(fn ($f) => (float) $f->total)->all(),
+        ];
     }
 
     protected function local()
@@ -141,11 +218,6 @@ class DashboardController extends Controller
             ->whereYear('created_at', $anioActual)
             ->where('estado_venta', 'completado')
             ->sum('venta_total');
-
-        $comisionMes = Comision::where('fkuser', $user->id)
-            ->whereMonth('created_at', $mesActual)
-            ->whereYear('created_at', $anioActual)
-            ->sum('comision_final');
 
         $alumnosSede = Alumno::where('fksede', $sedeId)
             ->where('alum_estado', true)
@@ -173,7 +245,6 @@ class DashboardController extends Controller
         return view('dashboard.local', compact(
             'ventasHoy',
             'ventasMes',
-            'comisionMes',
             'alumnosSede',
             'membresiasPorVencer',
             'pagosPendientes',
@@ -188,6 +259,7 @@ class DashboardController extends Controller
         $sedeId = $user->fksede;
         $hoy = now()->format('Y-m-d');
         $mesActual = now()->month;
+        $anioActual = now()->year;
 
         $alumnosGestionados = Alumno::where('fksede', $sedeId)
             ->where('fkuser', $user->id)
@@ -221,7 +293,34 @@ class DashboardController extends Controller
 
         $seguimientosPendientes = $membresiasPorVencer + $membresiasVencidas;
 
+        $ventasHoy = Venta::where('fkusers', $user->id)
+            ->whereDate('created_at', $hoy)
+            ->where('estado_venta', 'completado')
+            ->sum('venta_total');
+
+        $ventasMes = Venta::where('fkusers', $user->id)
+            ->whereMonth('created_at', $mesActual)
+            ->whereYear('created_at', $anioActual)
+            ->where('estado_venta', 'completado')
+            ->sum('venta_total');
+
+        $comisionMes = Comision::where('fkuser', $user->id)
+            ->where('estado', '!=', Comision::ESTADO_ANULADA)
+            ->whereMonth('created_at', $mesActual)
+            ->whereYear('created_at', $anioActual)
+            ->sum('comision_final');
+
+        $cajaAbierta = Caja::where('fkuser', $user->id)
+            ->where('estado', 'abierta')
+            ->exists();
+
         $totalNoLeidas = $this->notificationService->contarNoLeidas($user->id);
+
+        $graficoMisVentas = $this->serieMisVentasSemanales($user->id, $mesActual, $anioActual);
+        $graficoSeguimiento = [
+            'etiquetas' => ['Por vencer', 'Vencidas'],
+            'datos' => [(int) $membresiasPorVencer, (int) $membresiasVencidas],
+        ];
 
         return view('dashboard.redes', compact(
             'alumnosGestionados',
@@ -229,8 +328,39 @@ class DashboardController extends Controller
             'membresiasPorVencer',
             'membresiasVencidas',
             'seguimientosPendientes',
-            'totalNoLeidas'
+            'ventasHoy',
+            'ventasMes',
+            'comisionMes',
+            'cajaAbierta',
+            'totalNoLeidas',
+            'graficoMisVentas',
+            'graficoSeguimiento'
         ));
+    }
+
+    /**
+     * Ventas propias completadas del mes agrupadas por semana (1-7, 8-14, 15-21, 22-fin).
+     */
+    protected function serieMisVentasSemanales(int $userId, int $mes, int $anio): array
+    {
+        $ultimoDia = now()->setDate($anio, $mes, 1)->endOfMonth()->day;
+        $cortes = [[1, 7], [8, 14], [15, 21], [22, $ultimoDia]];
+        $datos = [];
+
+        foreach ($cortes as [$desde, $hasta]) {
+            $datos[] = (float) Venta::where('fkusers', $userId)
+                ->whereYear('created_at', $anio)
+                ->whereMonth('created_at', $mes)
+                ->whereDay('created_at', '>=', $desde)
+                ->whereDay('created_at', '<=', $hasta)
+                ->where('estado_venta', 'completado')
+                ->sum('venta_total');
+        }
+
+        return [
+            'etiquetas' => ['Sem 1', 'Sem 2', 'Sem 3', 'Sem 4'],
+            'datos' => $datos,
+        ];
     }
 
     protected function asistencia()

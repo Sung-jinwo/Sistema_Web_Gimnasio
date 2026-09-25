@@ -10,3 +10,5 @@ Artisan::command('inspire', function () {
 
 Schedule::command('notificaciones:generar')->dailyAt('07:00');
 Schedule::command('notificaciones:expirar')->dailyAt('06:00');
+Schedule::command('ventas:procesar-vencimientos')->dailyAt('00:05')->withoutOverlapping();
+Schedule::command('cajas:marcar-pendientes')->dailyAt('00:00')->withoutOverlapping();

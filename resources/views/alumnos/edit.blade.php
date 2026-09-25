@@ -20,6 +20,11 @@
             @csrf
             @method('PUT')
 
+            <div data-form-errors class="hidden mb-4 p-4 bg-red-50 border-l-4 border-red-500 rounded" role="alert">
+                <div class="font-medium text-red-800">Por favor corrige los siguientes errores:</div>
+                <ul data-form-errors-list class="mt-2 list-disc list-inside text-sm text-red-700"></ul>
+            </div>
+
             {{-- Mostrar errores de validación --}}
             @if($errors->any())
                 <div class="mb-4 p-4 bg-red-50 border-l-4 border-red-500 rounded">
@@ -284,7 +289,8 @@
                 <button
                     type="submit"
                     form="formEditAlumno"
-                    class="flex-1 px-4 py-2.5 bg-gradient-to-r from-pink-600 to-pink-700 text-white rounded-lg font-medium hover:from-pink-700 hover:to-pink-800 transition-all shadow-lg shadow-pink-500/50 flex items-center justify-center gap-2">
+                    data-loading-text="Actualizando…"
+                    class="flex-1 px-4 py-2.5 min-h-[44px] bg-gradient-to-r from-pink-600 to-pink-700 text-white rounded-lg font-medium hover:from-pink-700 hover:to-pink-800 transition-all shadow-lg shadow-pink-500/50 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-wait">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"></path>
                     </svg>

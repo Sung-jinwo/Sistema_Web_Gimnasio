@@ -3,11 +3,13 @@
 @section('page-title', 'Asistencias')
 @section('page-subtitle', 'Control de asistencia de alumnos')
 @section('content')
-<div x-data="{ showRegistrarModal: false }" class="w-full space-y-5">
+<div x-data="{ showRegistrarModal: {{ $errors->any() ? 'true' : 'false' }} }" class="w-full space-y-5">
     <div class="flex flex-wrap justify-end gap-2">
+        @can('asistencias.crear')
         <button @click="showRegistrarModal = true" class="inline-flex items-center px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition">
             <i class="fas fa-plus mr-2"></i> Registrar Asistencia
         </button>
+        @endcan
     </div>
 
     <form method="GET" action="{{ route('asistencias.index') }}" class="bg-white rounded-lg shadow-sm p-4">
@@ -28,13 +30,13 @@
 
     <div class="bg-white rounded-lg shadow-sm overflow-hidden">
         <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
+            <table data-card="compacta" class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha/Hora</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Alumno</th>
+                        <th data-card-prioritario class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha/Hora</th>
+                        <th data-card-prioritario class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Alumno</th>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo Ingreso</th>
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">Sede</th>
+                        <th data-card-oculto class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">Sede</th>
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
@@ -71,22 +73,23 @@
         @endif
     </div>
 
+    @can('asistencias.crear')
     <x-modal-form show="showRegistrarModal" title="Registrar Asistencia" subtitle="Ingrese el código o DNI del alumno" size="md" headerColor="red">
         <form action="{{ route('asistencias.store') }}" method="POST" class="space-y-4">
             @csrf
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Código o DNI del Alumno <span class="text-red-500">*</span></label>
-                <input type="text" name="fkalum" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent" placeholder="Ingrese código o DNI">
+                <input type="text" name="codigo_documento" value="{{ old('codigo_documento') }}" required maxlength="20" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent" placeholder="Ingrese código o DNI">
+                @error('codigo_documento')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
             </div>
             <div>
                 <label class="block text-sm font-medium text-gray-700 mb-1">Tipo de Ingreso <span class="text-red-500">*</span></label>
                 <select name="tipo_ingreso" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
                     <option value="">Seleccione...</option>
-                    <option value="codigo">Código</option>
-                    <option value="dni">DNI</option>
-                    <option value="qr">QR</option>
-                    <option value="huella">Huella</option>
+                    <option value="codigo" @selected(old('tipo_ingreso') === 'codigo')>Código</option>
+                    <option value="dni" @selected(old('tipo_ingreso') === 'dni')>DNI</option>
                 </select>
+                @error('tipo_ingreso')<p class="mt-1 text-sm text-red-600">{{ $message }}</p>@enderror
             </div>
             <div class="flex gap-3 pt-4">
                 <button type="button" @click="showRegistrarModal = false" class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition">Cancelar</button>
@@ -94,5 +97,6 @@
             </div>
         </form>
     </x-modal-form>
+    @endcan
 </div>
 @endsection

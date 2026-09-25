@@ -1,14 +1,15 @@
 {{-- resources/views/components/page-loader.blade.php --}}
 
-<div 
-    x-show="isLoading"
+<div
+    x-show="navegando"
     x-cloak
     x-transition:enter="transition ease-out duration-300"
     x-transition:enter-start="opacity-0"
     x-transition:enter-end="opacity-100"
-    x-transition:leave="transition ease-in duration-300"
+    x-transition:leave="transition ease-in duration-200"
     x-transition:leave-start="opacity-100"
     x-transition:leave-end="opacity-0"
+    @navegando-iniciar.window="navegando = true"
     class="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50">
     
     <div class="bg-white rounded-lg p-8 shadow-lg flex flex-col items-center gap-4">

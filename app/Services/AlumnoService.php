@@ -42,10 +42,12 @@ class AlumnoService
     {
         $alumno = Alumno::with([
             'sede',
-            'pagos.membresia',
-            'pagos.metodo',
+            'ventas.abonos.metodo',
+            'ventas.membresiaAlumno.membresia',
             'asistencias',
             'membresiasAlumno.membresia',
+            'membresiasAlumno.congelamientos.registradoPor',
+            'membresiasAlumno.ajustesVigencia.administrador',
         ])->findOrFail($alumnoId);
 
         $membresias = $alumno->membresiasAlumno->map(function ($membresiaAlumno) {
@@ -59,17 +61,19 @@ class AlumnoService
             ];
         });
 
-        $pagos = $alumno->pagos->map(function ($pago) {
-            return [
-                'fecha' => $pago->created_at,
-                'concepto' => $pago->membresia->mem_nombre ?? 'Pago',
-                'total' => $pago->pag_monto,
-                'pagado' => $pago->pag_monto,
-                'saldo' => 0,
-                'estado' => $pago->estado_pago,
-                'metodo' => $pago->metodo->metod_nombre ?? 'N/A',
-            ];
-        });
+        $pagos = $alumno->ventas->flatMap(function ($venta) {
+            return $venta->abonos->map(fn ($abono) => [
+                'fecha' => $abono->fecha_abono,
+                'concepto' => $venta->tipo_venta === 'membresia'
+                    ? ($venta->membresiaAlumno?->membresia?->mem_nombre ?? 'Membresía')
+                    : 'Venta de productos',
+                'total' => $abono->monto,
+                'pagado' => $abono->monto,
+                'saldo' => $venta->saldo,
+                'estado' => $venta->estado_pago,
+                'metodo' => $abono->metodo->metod_nombre ?? 'N/A',
+            ]);
+        })->sortByDesc('fecha')->values();
 
         $asistencias = $alumno->asistencias->map(function ($asistencia) {
             return [
@@ -84,6 +88,7 @@ class AlumnoService
             'membresias' => $membresias,
             'pagos' => $pagos,
             'asistencias' => $asistencias,
+            'vigencias' => $alumno->membresiasAlumno->sortByDesc('fecha_inicio')->values(),
         ];
     }
 
@@ -98,7 +103,7 @@ class AlumnoService
 
     public function obtenerAlumnosConFiltros(array $filtros, $usuario): \Illuminate\Contracts\Pagination\LengthAwarePaginator
     {
-        $query = Alumno::with(['sede']);
+        $query = Alumno::with(['sede', 'membresiaActiva']);
 
         $query = $this->scopePorSede($query, $usuario->fksede, $usuario);
 

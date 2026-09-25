@@ -1,5 +1,7 @@
 @extends('layouts.app')
 
+@section('title', 'Detalle de auditoría')
+
 @section('content')
 <div class="container mx-auto px-4 py-6">
     <div class="mb-6">
@@ -86,7 +88,7 @@
                     Cambios Realizados
                 </h2>
                 <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 overflow-x-auto">
-                    <table class="min-w-full">
+                    <table data-responsive="off" class="min-w-full">
                         <thead>
                             <tr>
                                 <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Campo</th>

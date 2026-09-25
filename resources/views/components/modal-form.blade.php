@@ -3,10 +3,24 @@
 <div 
     x-show="{{ $show }}"
     x-cloak
+    x-transition:enter="transition ease-out duration-200"
+    x-transition:enter-start="opacity-0"
+    x-transition:enter-end="opacity-100"
+    x-transition:leave="transition ease-in duration-150"
+    x-transition:leave-start="opacity-100"
+    x-transition:leave-end="opacity-0"
     {{ $attributes->merge(['class' => 'fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4']) }}
     @click.self="{{ $show }} = false">
     
-    <div class="bg-white rounded-lg w-full {{ $getSizeClass() }} {{ $scrollable ? 'max-h-[90vh]' : '' }} overflow-hidden flex flex-col shadow-2xl">
+    <div
+        x-show="{{ $show }}"
+        x-transition:enter="transition ease-out duration-200"
+        x-transition:enter-start="opacity-0 translate-y-3 scale-95"
+        x-transition:enter-end="opacity-100 translate-y-0 scale-100"
+        x-transition:leave="transition ease-in duration-150"
+        x-transition:leave-start="opacity-100 translate-y-0 scale-100"
+        x-transition:leave-end="opacity-0 translate-y-2 scale-95"
+        class="bg-white rounded-lg w-full {{ $getSizeClass() }} {{ $scrollable ? 'max-h-[90vh]' : '' }} overflow-hidden flex flex-col shadow-lg">
         
         <!-- Header Mejorado -->
         @if($title)

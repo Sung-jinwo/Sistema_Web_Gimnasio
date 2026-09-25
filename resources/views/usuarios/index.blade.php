@@ -35,14 +35,14 @@
 
     <div class="bg-white rounded-lg shadow-sm overflow-hidden">
         <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
+            <table data-card="compacta" class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rol</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">Sede</th>
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+                        <th data-card-prioritario class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
+                        <th data-card-oculto class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                        <th data-card-prioritario class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Rol</th>
+                        <th data-card-oculto class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">Sede</th>
+                        <th data-card-prioritario class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
                     </tr>
                 </thead>
@@ -65,14 +65,14 @@
                         <td class="px-4 py-3 text-center">
                             <div class="flex justify-center gap-2">
                                 @can('update', $usuario)
-                                <button type="button" onclick="editUsuario({{ $usuario->id }})" class="text-blue-600 hover:text-blue-900" title="Editar">
-                                    <i class="fas fa-edit"></i>
+                                <button type="button" onclick="editUsuario({{ $usuario->id }})" class="btn-accion text-green-600 hover:text-green-900" title="Editar">
+                                    <i class="fas fa-pen-to-square"></i>
                                 </button>
                                 @endcan
                                 @can('toggleEstado', $usuario)
                                 <form action="{{ route('usuarios.toggle', $usuario->id) }}" method="POST" class="inline">
                                     @csrf
-                                    <button type="submit" class="{{ $usuario->estado ? 'text-yellow-600 hover:text-yellow-900' : 'text-green-600 hover:text-green-900' }}" title="{{ $usuario->estado ? 'Desactivar' : 'Activar' }}">
+                                    <button type="submit" class="btn-accion {{ $usuario->estado ? 'text-yellow-600 hover:text-yellow-900' : 'text-green-600 hover:text-green-900' }}" title="{{ $usuario->estado ? 'Desactivar' : 'Activar' }}">
                                         <i class="fas {{ $usuario->estado ? 'fa-toggle-on' : 'fa-toggle-off' }}"></i>
                                     </button>
                                 </form>
@@ -81,8 +81,8 @@
                                 <form action="{{ route('usuarios.destroy', $usuario->id) }}" method="POST" class="inline" onsubmit="return confirm('¿Está seguro de eliminar este usuario?')">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="text-red-600 hover:text-red-900" title="Eliminar">
-                                        <i class="fas fa-trash"></i>
+                                    <button type="submit" class="btn-accion text-red-600 hover:text-red-900" title="Eliminar">
+                                        <i class="fas fa-trash-can"></i>
                                     </button>
                                 </form>
                                 @endcan

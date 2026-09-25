@@ -2,40 +2,148 @@
 
 namespace App\Services;
 
+use App\Models\Abono;
+use App\Models\Caja;
 use App\Models\Cuota;
 use App\Models\Pago;
 use App\Models\Venta;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class PaymentService
 {
-    public function registrarPago(int $ventaId, float $monto, int $metodoPagoId, ?string $fechaAcordada = null): Venta
+    public function __construct(
+        private readonly AuditService $auditService,
+        private readonly InventoryReservationService $inventario,
+        private readonly CommissionService $commissionService
+    ) {}
+
+    public function registrarCobroInicial(Venta $venta, array $cobros, array $datos = []): void
     {
-        return DB::transaction(function () use ($ventaId, $monto, $metodoPagoId, $fechaAcordada) {
-            $venta = Venta::findOrFail($ventaId);
-
-            $montoPagado = $venta->monto_pagado + $monto;
-            $saldo = $venta->venta_total - $montoPagado;
-
-            $estadoPago = 'pagado';
-            if ($saldo > 0) {
-                $estadoPago = 'parcial';
+        foreach ($cobros as $indice => $cobro) {
+            $monto = (float) $cobro['monto'];
+            if ($monto <= 0) {
+                continue;
             }
+            $abono = Abono::create([
+                'fkventa' => $venta->id_venta,
+                'fkmetodo' => $cobro['fkmetodo'],
+                'fksede' => $venta->fksede,
+                'fkcaja' => $venta->fkcaja,
+                'fkuser' => $venta->fkusers,
+                'monto' => $monto,
+                'fecha_abono' => now(),
+                'num_comprobante' => $datos['num_comprobante'] ?? null,
+                'observacion' => count($cobros) > 1 ? 'Cobro inicial '.($indice + 1).' de la venta' : 'Cobro inicial de la venta',
+            ]);
+
+            $this->auditarAbono($abono);
+        }
+
+        if ($venta->saldo > 0 && $venta->fecha_acordada) {
+            Cuota::firstOrCreate(
+                ['fkventa' => $venta->id_venta, 'numero_cuota' => 1],
+                [
+                    'monto' => $venta->saldo,
+                    'monto_pagado' => 0,
+                    'saldo' => $venta->saldo,
+                    'fecha_acordada' => $venta->fecha_acordada,
+                    'estado' => 'pendiente',
+                ]
+            );
+        }
+    }
+
+    public function registrarAbono(int $ventaId, array $datos): Abono
+    {
+        return DB::transaction(function () use ($ventaId, $datos) {
+            $venta = Venta::lockForUpdate()->findOrFail($ventaId);
+            $caja = Caja::lockForUpdate()->find($datos['fkcaja'] ?? null);
+            if (! $caja || $caja->estado !== 'abierta' || ! $caja->fecha_operativa?->isSameDay(today())) {
+                throw ValidationException::withMessages(['caja' => 'La caja ya no está disponible para registrar el abono.']);
+            }
+            $monto = (float) $datos['monto'];
+
+            if ($venta->estado_venta === 'anulado') {
+                throw ValidationException::withMessages(['monto' => 'No se puede abonar a una venta anulada.']);
+            }
+
+            if ($monto <= 0 || $monto > (float) $venta->saldo) {
+                throw ValidationException::withMessages(['monto' => 'El abono debe ser mayor a cero y no exceder el saldo pendiente.']);
+            }
+
+            $esCobroFinal = $monto >= (float) $venta->saldo;
+            if ($esCobroFinal && $venta->stock_liberado_at) {
+                $this->inventario->reapartarParaCobroFinal($venta);
+                $venta->refresh();
+            }
+
+            $abono = Abono::create([
+                'fkventa' => $venta->id_venta,
+                'fkmetodo' => $datos['fkmetodo'],
+                'fksede' => $datos['fksede'] ?? $venta->fksede,
+                'fkcaja' => $datos['fkcaja'] ?? $venta->fkcaja,
+                'fkuser' => $datos['fkuser'] ?? auth()->id() ?? $venta->fkusers,
+                'monto' => $monto,
+                'fecha_abono' => $datos['fecha_abono'] ?? now(),
+                'num_comprobante' => $datos['num_comprobante'] ?? null,
+                'observacion' => $datos['observacion'] ?? null,
+            ]);
+
+            $cuotasAplicadas = $this->aplicarMontoACuotas($venta, $monto);
+            if (count($cuotasAplicadas) === 1) {
+                $abono->update(['fkcuota' => $cuotasAplicadas[0]]);
+            }
+
+            $montoPagado = min((float) $venta->venta_total, (float) $venta->monto_pagado + $monto);
+            $saldo = max(0, (float) $venta->venta_total - $montoPagado);
+            $estadoPago = $saldo <= 0
+                ? 'pagado'
+                : ($venta->fecha_acordada?->isBefore(today()) ? 'vencido' : 'parcial');
+            $fechaAcordadaPrevia = $venta->fecha_acordada?->format('Y-m-d');
+
+            // Se recalcula antes de actualizar: al completarse el pago la
+            // fecha acordada se limpia y se perdería la referencia de mora.
+            $this->commissionService->actualizarPenalizacionVenta($venta);
 
             $venta->update([
                 'monto_pagado' => $montoPagado,
-                'saldo' => max(0, $saldo),
+                'saldo' => $saldo,
                 'estado_pago' => $estadoPago,
-                'fkmetodo' => $metodoPagoId,
-                'fecha_acordada' => $fechaAcordada,
+                'fecha_acordada' => $saldo <= 0 ? null : $venta->fecha_acordada,
+                'pagada_at' => $saldo <= 0 ? ($datos['fecha_abono'] ?? now()) : null,
+                'estado_venta' => $saldo <= 0 && $venta->tipo_venta === 'producto' ? 'completado' : $venta->estado_venta,
             ]);
 
-            if ($saldo > 0 && $fechaAcordada) {
-                $this->crearCuotaParaVenta($venta, $saldo, $fechaAcordada);
+            if ($saldo <= 0) {
+                $this->commissionService->habilitarComisionPorCobroFinal(
+                    $venta->fresh(),
+                    $abono->fkcaja,
+                    $fechaAcordadaPrevia
+                );
             }
 
-            return $venta->fresh();
+            $this->auditarAbono($abono->fresh());
+
+            return $abono->fresh(['venta', 'metodo', 'user']);
         });
+    }
+
+    public function registrarPago(int $ventaId, float $monto, int $metodoPagoId, ?string $fechaAcordada = null): Venta
+    {
+        $venta = Venta::findOrFail($ventaId);
+        $this->registrarAbono($ventaId, [
+            'monto' => $monto,
+            'fkmetodo' => $metodoPagoId,
+            'fksede' => $venta->fksede,
+            'fkuser' => auth()->id() ?? $venta->fkusers,
+        ]);
+
+        if ($fechaAcordada && $venta->fresh()->saldo > 0) {
+            $venta->update(['fecha_acordada' => $fechaAcordada]);
+        }
+
+        return $venta->fresh();
     }
 
     public function calcularSaldo(int $ventaId): float
@@ -47,38 +155,21 @@ class PaymentService
 
     public function aplicarPagoACuota(int $cuotaId, float $monto): Cuota
     {
-        return DB::transaction(function () use ($cuotaId, $monto) {
-            $cuota = Cuota::findOrFail($cuotaId);
+        $cuota = Cuota::findOrFail($cuotaId);
 
-            $montoPagado = $cuota->monto_pagado + $monto;
-            $saldo = $cuota->monto - $montoPagado;
-
-            $estado = 'pendiente';
-            if ($saldo <= 0) {
-                $estado = 'pagada';
-                $montoPagado = $cuota->monto;
-                $saldo = 0;
-            } elseif ($montoPagado > 0) {
-                $estado = 'parcial';
-            }
-
-            $cuota->update([
-                'monto_pagado' => $montoPagado,
-                'saldo' => max(0, $saldo),
-                'estado' => $estado,
-                'fecha_pago_real' => $estado === 'pagada' ? now()->format('Y-m-d') : $cuota->fecha_pago_real,
+        if ($cuota->fkventa) {
+            $venta = $cuota->venta;
+            $this->registrarAbono($venta->id_venta, [
+                'monto' => $monto,
+                'fkmetodo' => $venta->fkmetodo,
+                'fksede' => $venta->fksede,
+                'fkuser' => auth()->id() ?? $venta->fkusers,
             ]);
 
-            if ($cuota->fkventa) {
-                $this->actualizarVentaDesdeCuota($cuota->fkventa);
-            }
-
-            if ($cuota->fkpago) {
-                $this->actualizarPagoDesdeCuota($cuota->fkpago);
-            }
-
             return $cuota->fresh();
-        });
+        }
+
+        return $this->aplicarPagoACuotaLegacy($cuota, $monto);
     }
 
     public function crearCuotasParaVenta(int $ventaId, array $cuotasData): Venta
@@ -100,8 +191,8 @@ class PaymentService
 
             $totalCuotas = array_sum(array_column($cuotasData, 'monto'));
             $venta->update([
-                'estado_pago' => 'parcial',
-                'monto_pagado' => $venta->venta_total - $totalCuotas,
+                'estado_pago' => $totalCuotas >= $venta->venta_total ? 'pendiente' : 'parcial',
+                'monto_pagado' => max(0, $venta->venta_total - $totalCuotas),
                 'saldo' => $totalCuotas,
             ]);
 
@@ -111,65 +202,70 @@ class PaymentService
 
     public function marcarComoVencido(): int
     {
-        $hoy = now()->format('Y-m-d');
-
-        return Cuota::where('estado', 'pendiente')
-            ->where('fecha_acordada', '<', $hoy)
+        return Cuota::whereIn('estado', ['pendiente', 'parcial'])
+            ->whereDate('fecha_acordada', '<', today())
             ->update(['estado' => 'vencida']);
     }
 
-    protected function crearCuotaParaVenta(Venta $venta, float $saldo, string $fechaAcordada): void
+    private function aplicarMontoACuotas(Venta $venta, float $monto): array
     {
-        $numeroCuota = Cuota::where('fkventa', $venta->id_venta)->count() + 1;
+        $restante = $monto;
+        $aplicadas = [];
+        $cuotas = $venta->cuotas()->whereIn('estado', ['pendiente', 'parcial', 'vencida'])
+            ->orderBy('fecha_acordada')->lockForUpdate()->get();
 
-        Cuota::create([
-            'fkventa' => $venta->id_venta,
-            'numero_cuota' => $numeroCuota,
-            'monto' => $saldo,
-            'monto_pagado' => 0,
-            'saldo' => $saldo,
-            'fecha_acordada' => $fechaAcordada,
-            'estado' => 'pendiente',
-        ]);
-    }
+        foreach ($cuotas as $cuota) {
+            if ($restante <= 0) {
+                break;
+            }
 
-    protected function actualizarVentaDesdeCuota(int $ventaId): void
-    {
-        $venta = Venta::findOrFail($ventaId);
-        $cuotas = Cuota::where('fkventa', $ventaId)->get();
+            $aplicado = min($restante, (float) $cuota->saldo);
+            $pagado = (float) $cuota->monto_pagado + $aplicado;
+            $saldo = max(0, (float) $cuota->monto - $pagado);
+            $cuota->update([
+                'monto_pagado' => $pagado,
+                'saldo' => $saldo,
+                'estado' => $saldo <= 0 ? 'pagada' : 'parcial',
+                'fecha_pago_real' => $saldo <= 0 ? today() : $cuota->fecha_pago_real,
+            ]);
 
-        $totalPagadoCuotas = $cuotas->sum('monto_pagado');
-        $montoPagadoTotal = $venta->venta_total - $cuotas->sum('saldo');
-
-        $estadoPago = 'pagado';
-        if ($montoPagadoTotal < $venta->venta_total) {
-            $estadoPago = 'parcial';
+            $aplicadas[] = $cuota->id_cuota;
+            $restante -= $aplicado;
         }
 
-        $venta->update([
-            'monto_pagado' => $montoPagadoTotal,
-            'saldo' => max(0, $venta->venta_total - $montoPagadoTotal),
-            'estado_pago' => $estadoPago,
-        ]);
+        return $aplicadas;
     }
 
-    protected function actualizarPagoDesdeCuota(int $pagoId): void
+    private function aplicarPagoACuotaLegacy(Cuota $cuota, float $monto): Cuota
     {
-        $pago = Pago::findOrFail($pagoId);
-        $cuotas = Cuota::where('fkpago', $pagoId)->get();
+        return DB::transaction(function () use ($cuota, $monto) {
+            $pagado = min((float) $cuota->monto, (float) $cuota->monto_pagado + $monto);
+            $saldo = max(0, (float) $cuota->monto - $pagado);
+            $cuota->update([
+                'monto_pagado' => $pagado,
+                'saldo' => $saldo,
+                'estado' => $saldo <= 0 ? 'pagada' : 'parcial',
+                'fecha_pago_real' => $saldo <= 0 ? today() : $cuota->fecha_pago_real,
+            ]);
 
-        $totalPagadoCuotas = $cuotas->sum('monto_pagado');
-        $montoPagadoTotal = $pago->total - $cuotas->sum('saldo');
+            if ($cuota->fkpago) {
+                $pago = Pago::find($cuota->fkpago);
+                if ($pago) {
+                    $saldoPago = $pago->cuotas()->sum('saldo');
+                    $pago->update([
+                        'saldo' => $saldoPago,
+                        'monto_pagado' => max(0, $pago->total - $saldoPago),
+                        'estado_pago' => $saldoPago <= 0 ? 'completo' : 'incompleto',
+                    ]);
+                }
+            }
 
-        $estadoPago = 'completo';
-        if ($montoPagadoTotal < $pago->total) {
-            $estadoPago = 'incompleto';
-        }
+            return $cuota->fresh();
+        });
+    }
 
-        $pago->update([
-            'monto_pagado' => $montoPagadoTotal,
-            'saldo' => max(0, $pago->total - $montoPagadoTotal),
-            'estado_pago' => $estadoPago,
-        ]);
+    private function auditarAbono(Abono $abono): void
+    {
+        $this->auditService->registrarCreacion('cobranza', 'Abono', $abono->id_abono, $abono->toArray(), $abono->fkuser);
     }
 }

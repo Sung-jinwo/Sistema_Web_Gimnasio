@@ -60,6 +60,15 @@ class LoginTest extends TestCase
         $this->assertGuest();
     }
 
+    public function test_get_logout_never_throws_405_nor_logs_out(): void
+    {
+        $this->get('/logout')->assertRedirect('/login');
+
+        $user = User::factory()->create();
+        $this->actingAs($user)->get('/logout')->assertRedirect('/');
+        $this->assertAuthenticatedAs($user);
+    }
+
     public function test_authenticated_user_is_redirected_from_login(): void
     {
         $user = User::factory()->create();

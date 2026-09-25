@@ -19,6 +19,11 @@ class Gasto extends Model
         return $this->belongsTo(Sede::class, 'fksede', 'id_sede');
     }
 
+    public function caja()
+    {
+        return $this->belongsTo(Caja::class, 'fkcaja', 'id_caja');
+    }
+
     public function user()
     {
         return $this->belongsTo(User::class, 'fkuser', 'id');
@@ -27,6 +32,11 @@ class Gasto extends Model
     public function categoria()
     {
         return $this->belongsTo(CategoriaGasto::class, 'fkcategoria', 'id_categoria');
+    }
+
+    public function metodo()
+    {
+        return $this->belongsTo(MetodoPago::class, 'fkmetodo', 'id_metod');
     }
 
     public function aprobadoPor()

@@ -9,7 +9,7 @@ class ComisionPolicy
 {
     public function viewAny(User $user): bool
     {
-        return $user->hasRole(['Administrador', 'Local']);
+        return $user->hasRole('Administrador');
     }
 
     public function view(User $user, Comision $comision): bool
@@ -18,7 +18,17 @@ class ComisionPolicy
             return true;
         }
 
-        return $user->id === $comision->fkuser;
+        return $user->hasRole(['Local', 'Redes']) && (int) $comision->fkuser === (int) $user->id;
+    }
+
+    public function aprobar(User $user): bool
+    {
+        return $user->hasRole('Administrador');
+    }
+
+    public function liquidar(User $user): bool
+    {
+        return $user->hasRole('Administrador');
     }
 
     public function create(User $user): bool

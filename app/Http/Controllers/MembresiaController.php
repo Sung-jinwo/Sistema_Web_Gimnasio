@@ -6,20 +6,14 @@ use App\Http\Requests\MembresiaRequest;
 use App\Models\Alumno;
 use App\Models\Membresia;
 use App\Models\MembresiaAlumno;
-use App\Services\MembresiaService;
 use Illuminate\Http\Request;
 
 class MembresiaController extends Controller
 {
-    protected MembresiaService $membresiaService;
-
-    public function __construct(MembresiaService $membresiaService)
-    {
-        $this->membresiaService = $membresiaService;
-    }
-
     public function index(Request $request)
     {
+        $this->authorize('viewAny', Membresia::class);
+
         $query = Membresia::query();
 
         if ($request->has('mem_categoria') && $request->mem_categoria) {
@@ -41,6 +35,8 @@ class MembresiaController extends Controller
 
     public function store(MembresiaRequest $request)
     {
+        $this->authorize('create', Membresia::class);
+
         $data = $request->validated();
         $data['comision'] = $data['comision'] ?? 0;
         $data['modalidad'] = $data['modalidad'] ?? 'por_meses';
@@ -63,17 +59,19 @@ class MembresiaController extends Controller
     public function edit($id)
     {
         $membresia = Membresia::findOrFail($id);
+        $this->authorize('update', $membresia);
 
         if (request()->expectsJson()) {
             return response()->json($membresia);
         }
 
-        return view('membresias.edit', compact('membresia'));
+        return redirect()->route('membresias.index');
     }
 
     public function update(MembresiaRequest $request, $id)
     {
         $membresia = Membresia::findOrFail($id);
+        $this->authorize('update', $membresia);
         $data = $request->validated();
 
         $membresia->update($data);
@@ -93,6 +91,7 @@ class MembresiaController extends Controller
     public function destroy(Request $request, $id)
     {
         $membresia = Membresia::findOrFail($id);
+        $this->authorize('delete', $membresia);
         $membresia->estado = $membresia->estado === 'A' ? 'I' : 'A';
         $membresia->save();
 
@@ -107,40 +106,11 @@ class MembresiaController extends Controller
             ->with('success', $membresia->estado === 'A' ? 'Membresía activada exitosamente' : 'Membresía desactivada exitosamente');
     }
 
-    public function asignar(Request $request, $alumnoId)
-    {
-        $alumno = Alumno::findOrFail($alumnoId);
-
-        $request->validate([
-            'fkmem' => 'required|exists:membresias,id_mem',
-            'modalidad' => 'required|in:por_meses,por_fechas',
-            'fecha_inicio' => 'required_if:modalidad,por_meses|nullable|date',
-            'fecha_fin' => 'required_if:modalidad,por_fechas|nullable|date|after_or_equal:fecha_inicio',
-        ]);
-
-        $membresiaAlumno = $this->membresiaService->asignarMembresia(
-            $alumnoId,
-            $request->fkmem,
-            $request->modalidad,
-            $request->fecha_inicio,
-            $request->fecha_fin
-        );
-
-        if ($request->expectsJson()) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Membresía asignada exitosamente',
-                'data' => $membresiaAlumno->load('membresia'),
-            ], 201);
-        }
-
-        return redirect()->route('alumnos.show', $alumnoId)
-            ->with('success', 'Membresía asignada exitosamente');
-    }
-
     public function historial($alumnoId)
     {
         $alumno = Alumno::findOrFail($alumnoId);
+        $this->authorize('view', $alumno);
+
         $membresias = MembresiaAlumno::with('membresia')
             ->where('fkalumno', $alumnoId)
             ->orderByDesc('fecha_inicio')
@@ -151,33 +121,5 @@ class MembresiaController extends Controller
         }
 
         return view('membresias.historial', compact('alumno', 'membresias'));
-    }
-
-    public function renovar(Request $request, $membresiaAlumnoId)
-    {
-        $membresiaAlumno = MembresiaAlumno::with('membresia')->findOrFail($membresiaAlumnoId);
-
-        $request->validate([
-            'fecha_inicio' => 'required|date',
-        ]);
-
-        $nuevaMembresia = $this->membresiaService->asignarMembresia(
-            $membresiaAlumno->fkalumno,
-            $membresiaAlumno->fkmem,
-            $membresiaAlumno->modalidad,
-            $request->fecha_inicio,
-            null
-        );
-
-        if ($request->expectsJson()) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Membresía renovada exitosamente',
-                'data' => $nuevaMembresia->load('membresia'),
-            ], 201);
-        }
-
-        return redirect()->route('alumnos.show', $membresiaAlumno->fkalumno)
-            ->with('success', 'Membresía renovada exitosamente');
     }
 }

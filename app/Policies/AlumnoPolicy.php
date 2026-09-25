@@ -44,6 +44,11 @@ class AlumnoPolicy
         return true;
     }
 
+    public function reportar(User $user): bool
+    {
+        return $user->can('alumnos.reportar');
+    }
+
     public function restore(User $user, Alumno $alumno): bool
     {
         return $user->hasRole('Administrador');

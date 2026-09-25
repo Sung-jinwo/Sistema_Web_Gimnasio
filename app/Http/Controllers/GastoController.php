@@ -5,14 +5,18 @@ namespace App\Http\Controllers;
 use App\Http\Requests\GastoRequest;
 use App\Models\CategoriaGasto;
 use App\Models\Gasto;
+use App\Models\MetodoPago;
 use App\Services\AuditService;
+use App\Services\CashClosingService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class GastoController extends Controller
 {
     protected AuditService $auditService;
 
-    public function __construct(AuditService $auditService)
+    public function __construct(AuditService $auditService, private readonly CashClosingService $cashClosingService)
     {
         $this->auditService = $auditService;
     }
@@ -21,7 +25,7 @@ class GastoController extends Controller
     {
         $this->authorize('viewAny', Gasto::class);
 
-        $query = Gasto::with(['categoria', 'user', 'sede', 'aprobadoPor']);
+        $query = Gasto::with(['categoria', 'metodo', 'user', 'sede', 'aprobadoPor']);
 
         if (! auth()->user()->hasRole('Administrador')) {
             $query->where('fksede', auth()->user()->fksede);
@@ -45,24 +49,49 @@ class GastoController extends Controller
 
         $gastos = $query->orderByDesc('gas_fecha')->paginate(15);
         $categorias = CategoriaGasto::all();
+        $metodos = MetodoPago::orderByDesc('es_efectivo')->orderBy('metod_nombre')->get();
+        $cajaPropiaAbierta = $this->cashClosingService->cajaOperativaDe(auth()->id());
+        $bloqueoCaja = $cajaPropiaAbierta ? null : $this->cashClosingService->impedimentoAperturaDe(auth()->id());
 
         if ($request->expectsJson()) {
             return response()->json($gastos);
         }
 
-        return view('gastos.index', compact('gastos', 'categorias'));
+        return view('gastos.index', compact('gastos', 'categorias', 'metodos', 'cajaPropiaAbierta', 'bloqueoCaja'));
     }
 
     public function store(GastoRequest $request)
     {
         $this->authorize('create', Gasto::class);
 
+        $caja = $this->cashClosingService->cajaOperativaDe(auth()->id());
+
+        if (! $caja) {
+            $mensaje = $this->cashClosingService->impedimentoAperturaDe(auth()->id())
+                ?? 'Debes aperturar tu caja antes de registrar un gasto.';
+
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => $mensaje], 422);
+            }
+
+            return redirect()->back()->withErrors(['error' => $mensaje])->withInput();
+        }
+
         $data = $request->validated();
         $data['fkuser'] = auth()->id();
         $data['fksede'] = auth()->user()->fksede;
+        $data['fkcaja'] = $caja->id_caja;
+        $data['gas_fecha'] = today()->toDateString();
         $data['estado'] = 'pendiente';
 
-        $gasto = Gasto::create($data);
+        $gasto = DB::transaction(function () use ($data, $caja) {
+            $cajaBloqueada = \App\Models\Caja::lockForUpdate()->find($caja->id_caja);
+            if (! $cajaBloqueada || $cajaBloqueada->estado !== 'abierta' || ! $cajaBloqueada->fecha_operativa?->isSameDay(today())) {
+                throw ValidationException::withMessages(['caja' => 'La caja ya no está disponible para registrar el gasto.']);
+            }
+
+            return Gasto::create($data);
+        });
 
         $this->auditService->registrarCreacion(
             'gastos',
@@ -88,13 +117,11 @@ class GastoController extends Controller
         $gasto = Gasto::findOrFail($id);
         $this->authorize('update', $gasto);
 
-        $categorias = CategoriaGasto::all();
-
         if (request()->expectsJson()) {
             return response()->json($gasto);
         }
 
-        return view('gastos.edit', compact('gasto', 'categorias'));
+        return redirect()->route('gastos.index');
     }
 
     public function update(GastoRequest $request, $id)
@@ -142,14 +169,18 @@ class GastoController extends Controller
 
     public function aprobar(Request $request, $id)
     {
-        $gasto = Gasto::findOrFail($id);
-        $this->authorize('aprobar', $gasto);
+        $gasto = DB::transaction(function () use ($id) {
+            $gasto = Gasto::lockForUpdate()->findOrFail($id);
+            $this->authorize('aprobar', $gasto);
 
-        $gasto->update([
-            'estado' => 'aprobado',
-            'aprobado_por' => auth()->id(),
-            'fecha_aprobacion' => now(),
-        ]);
+            $gasto->update([
+                'estado' => 'aprobado',
+                'aprobado_por' => auth()->id(),
+                'fecha_aprobacion' => now(),
+            ]);
+
+            return $gasto;
+        });
 
         $this->auditService->registrarAprobacion(
             'gastos',
@@ -172,9 +203,6 @@ class GastoController extends Controller
 
     public function rechazar(Request $request, $id)
     {
-        $gasto = Gasto::findOrFail($id);
-        $this->authorize('rechazar', $gasto);
-
         $request->validate([
             'motivo_rechazo' => 'required|string|max:500',
         ], [
@@ -183,12 +211,19 @@ class GastoController extends Controller
             'motivo_rechazo.max' => 'El motivo no puede superar los 500 caracteres.',
         ]);
 
-        $gasto->update([
-            'estado' => 'rechazado',
-            'aprobado_por' => auth()->id(),
-            'fecha_aprobacion' => now(),
-            'motivo_rechazo' => $request->motivo_rechazo,
-        ]);
+        $gasto = DB::transaction(function () use ($id, $request) {
+            $gasto = Gasto::lockForUpdate()->findOrFail($id);
+            $this->authorize('rechazar', $gasto);
+
+            $gasto->update([
+                'estado' => 'rechazado',
+                'aprobado_por' => auth()->id(),
+                'fecha_aprobacion' => now(),
+                'motivo_rechazo' => $request->motivo_rechazo,
+            ]);
+
+            return $gasto;
+        });
 
         $this->auditService->registrarRechazo(
             'gastos',

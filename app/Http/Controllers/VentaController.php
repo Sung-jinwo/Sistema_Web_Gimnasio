@@ -7,8 +7,12 @@ use App\Models\Alumno;
 use App\Models\Membresia;
 use App\Models\MetodoPago;
 use App\Models\Producto;
+use App\Models\Sede;
 use App\Models\Venta;
 use App\Services\AuditService;
+use App\Services\CashClosingService;
+use App\Services\CommissionService;
+use App\Services\InventoryReservationService;
 use App\Services\SaleService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -19,8 +23,13 @@ class VentaController extends Controller
 
     protected AuditService $auditService;
 
-    public function __construct(SaleService $saleService, AuditService $auditService)
-    {
+    public function __construct(
+        SaleService $saleService,
+        AuditService $auditService,
+        private readonly CashClosingService $cashClosingService,
+        private readonly InventoryReservationService $inventario,
+        private readonly CommissionService $commissionService
+    ) {
         $this->saleService = $saleService;
         $this->auditService = $auditService;
     }
@@ -33,6 +42,11 @@ class VentaController extends Controller
 
         if (! auth()->user()->hasRole('Administrador')) {
             $query->where('fksede', auth()->user()->fksede);
+
+            // Redes solo ve lo que él mismo registró.
+            if (auth()->user()->hasRole('Redes')) {
+                $query->where('fkusers', auth()->id());
+            }
         }
 
         if ($request->has('search') && $request->search) {
@@ -55,21 +69,42 @@ class VentaController extends Controller
         }
 
         $ventas = $query->orderByDesc('updated_at')->paginate(15);
+        $cajaPropiaAbierta = $this->cashClosingService->cajaOperativaDe(auth()->id());
+        $bloqueoCaja = $cajaPropiaAbierta ? null : $this->cashClosingService->impedimentoAperturaDe(auth()->id());
+        $sedes = Sede::where('sede_estado', true)->orderBy('sede_nombre')->get(['id_sede', 'sede_nombre']);
 
         if ($request->expectsJson()) {
             return response()->json($ventas);
         }
 
-        return view('ventas.index', compact('ventas'));
+        return view('ventas.index', compact('ventas', 'cajaPropiaAbierta', 'bloqueoCaja', 'sedes'));
     }
 
     public function store(VentaRequest $request)
     {
         $this->authorize('create', Venta::class);
 
+        $caja = $this->cashClosingService->cajaOperativaDe(auth()->id());
+
+        if (! $caja) {
+            $mensaje = $this->cashClosingService->impedimentoAperturaDe(auth()->id())
+                ?? 'Debes aperturar tu caja antes de registrar una venta.';
+
+            if ($request->expectsJson()) {
+                return response()->json(['success' => false, 'message' => $mensaje], 422);
+            }
+
+            return redirect()->back()->withErrors(['error' => $mensaje])->withInput();
+        }
+
         $data = $request->validated();
         $data['fkusers'] = auth()->id();
-        $data['fksede'] = auth()->user()->fksede;
+        // La sede de inscripción se elige en la venta de membresía;
+        // productos y rápida operan con stock de la sede del empleado.
+        $data['fksede'] = ($data['tipo_venta'] === 'membresia' && ! empty($data['fksede']))
+            ? (int) $data['fksede']
+            : auth()->user()->fksede;
+        $data['fkcaja'] = $caja->id_caja;
 
         try {
             $venta = null;
@@ -111,41 +146,6 @@ class VentaController extends Controller
         }
     }
 
-    public function update(Request $request, $id)
-    {
-        $venta = Venta::findOrFail($id);
-        $this->authorize('update', $venta);
-
-        abort_unless($venta->estado_venta === 'reservado' || auth()->user()->hasRole('Administrador'), 422, 'Solo se pueden editar completamente las ventas reservadas.');
-        $data = $request->validate([
-            'estado_venta' => 'required|in:completado,reservado',
-            'monto_pagado' => 'nullable|numeric|min:0',
-            'fecha_acordada' => 'nullable|date',
-            'observacion' => 'nullable|string',
-        ]);
-
-        if (isset($data['monto_pagado'])) {
-            $data['saldo'] = $venta->venta_total - $data['monto_pagado'];
-            $data['estado_pago'] = $data['saldo'] <= 0 ? 'pagado' : ($data['monto_pagado'] > 0 ? 'parcial' : 'pendiente');
-            if ($data['saldo'] <= 0) {
-                $data['fecha_acordada'] = null;
-            }
-        }
-
-        $venta->update($data);
-
-        if ($request->expectsJson()) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Venta actualizada exitosamente',
-                'venta' => $venta->fresh()->load(['alumno', 'metodo', 'producto']),
-            ]);
-        }
-
-        return redirect()->route('ventas.index')
-            ->with('success', 'Venta actualizada exitosamente');
-    }
-
     public function destroy(Request $request, $id)
     {
         return $this->anular($request, $id);
@@ -164,10 +164,8 @@ class VentaController extends Controller
         }
         $valoresAnteriores = $venta->toArray();
         DB::transaction(function () use ($venta, $data) {
-            foreach ($venta->detalles as $detalle) {
-                $detalle->producto?->increment('prod_cantidad', $detalle->cantidad);
-            }
-            $venta->comisiones()->delete();
+            $this->inventario->devolverStockAlAnular($venta);
+            $this->commissionService->anularComisionPorVenta($venta, auth()->id());
             $venta->update(['estado_venta' => 'anulado', 'motivo_anulacion' => $data['motivo_anulacion'], 'anulada_por' => auth()->id(), 'anulada_at' => now()]);
         });
         $this->auditService->registrarEdicion('ventas', 'Venta', $venta->id_venta, $valoresAnteriores, $venta->fresh()->toArray());
@@ -175,70 +173,29 @@ class VentaController extends Controller
         return redirect()->route('ventas.index')->with('success', 'Venta anulada y stock restaurado.');
     }
 
-    public function reservados(Request $request)
-    {
-        $this->authorize('viewAny', Venta::class);
-
-        $query = Venta::with(['alumno', 'user', 'sede', 'metodo', 'producto'])
-            ->where('estado_venta', 'reservado');
-
-        if (! auth()->user()->hasRole('Administrador')) {
-            $query->where('fksede', auth()->user()->fksede);
-        }
-
-        $ventas = $query->orderByDesc('updated_at')->paginate(15);
-
-        if ($request->expectsJson()) {
-            return response()->json($ventas);
-        }
-
-        return view('ventas.index', compact('ventas'))->with('soloReservadas', true);
-    }
-
     public function datosVentaRapida()
     {
-        $productos = Producto::where('fksede', auth()->user()->fksede)->where('prod_estado', true)
-            ->where('prod_cantidad', '>', 0)
-            ->get(['id_productos', 'prod_nombre', 'prod_precio', 'prod_cantidad']);
         $metodos = MetodoPago::all(['id_metod', 'metod_nombre']);
 
         return response()->json([
-            'productos' => $productos,
             'metodos' => $metodos,
         ]);
     }
 
     public function datosVentaProducto()
     {
-        $alumnos = Alumno::where('fksede', auth()->user()->fksede)
-            ->where('alum_estado', true)
-            ->orderBy('alum_nombre')
-            ->get(['id_alumno', 'alum_nombre', 'alum_apellido', 'alum_numDoc']);
-        $productos = Producto::where('fksede', auth()->user()->fksede)->where('prod_estado', true)
-            ->where('prod_cantidad', '>', 0)
-            ->get(['id_productos', 'prod_nombre', 'prod_precio', 'prod_cantidad']);
         $metodos = MetodoPago::all(['id_metod', 'metod_nombre']);
 
         return response()->json([
-            'alumnos' => $alumnos,
-            'productos' => $productos,
             'metodos' => $metodos,
         ]);
     }
 
     public function datosVentaMembresia()
     {
-        $alumnos = Alumno::where('fksede', auth()->user()->fksede)
-            ->where('alum_estado', true)
-            ->orderBy('alum_nombre')
-            ->get(['id_alumno', 'alum_nombre', 'alum_apellido', 'alum_numDoc']);
-        $membresias = Membresia::where('estado', 'A')
-            ->get(['id_mem', 'mem_nombre', 'mem_precio', 'mem_duracion', 'modalidad', 'fecha_inicio_fija', 'fecha_fin_fija']);
         $metodos = MetodoPago::all(['id_metod', 'metod_nombre']);
 
         return response()->json([
-            'alumnos' => $alumnos,
-            'membresias' => $membresias,
             'metodos' => $metodos,
         ]);
     }
@@ -246,14 +203,59 @@ class VentaController extends Controller
     public function buscarAlumnos(Request $request)
     {
         $q = trim((string) $request->input('q'));
+        if (! preg_match('/^\d{3,20}$/', $q)) {
+            return response()->json([]);
+        }
+
         $query = Alumno::where('alum_estado', true);
         if (! auth()->user()->hasRole('Administrador')) {
             $query->where('fksede', auth()->user()->fksede);
         }
-        if ($q !== '') {
-            $query->where(fn ($x) => $x->where('alum_numDoc', 'like', "%{$q}%")->orWhere('alum_codigo', 'like', "%{$q}%")->orWhere('alum_nombre', 'like', "%{$q}%")->orWhere('alum_apellido', 'like', "%{$q}%"));
+        $query->where('alum_numDoc', 'like', "%{$q}%");
+
+        return response()->json($query->orderBy('alum_numDoc')->limit(10)->get([
+            'id_alumno', 'alum_nombre', 'alum_apellido', 'alum_numDoc',
+        ]));
+    }
+
+    public function buscarProductos(Request $request)
+    {
+        $q = trim((string) $request->input('q'));
+        if (mb_strlen($q) < 2) {
+            return response()->json([]);
         }
 
-        return response()->json($query->limit(10)->get(['id_alumno', 'alum_nombre', 'alum_apellido', 'alum_numDoc', 'alum_codigo']));
+        $productos = Producto::where('fksede', auth()->user()->fksede)
+            ->where('prod_estado', true)
+            ->where('prod_nombre', 'like', "%{$q}%")
+            ->orderBy('prod_nombre')
+            ->limit(10)
+            ->get(['id_productos', 'prod_nombre', 'prod_precio', 'prod_cantidad'])
+            ->map(function (Producto $producto) {
+                $producto->setAttribute('disponible', $producto->prod_cantidad > 0);
+
+                return $producto;
+            });
+
+        return response()->json($productos);
+    }
+
+    public function buscarMembresias(Request $request)
+    {
+        $q = trim((string) $request->input('q'));
+        if (mb_strlen($q) < 2) {
+            return response()->json([]);
+        }
+
+        return response()->json(
+            Membresia::where('estado', 'A')
+                ->where('mem_nombre', 'like', "%{$q}%")
+                ->orderBy('mem_nombre')
+                ->limit(10)
+                ->get([
+                    'id_mem', 'mem_nombre', 'mem_precio', 'mem_duracion',
+                    'modalidad', 'fecha_inicio_fija', 'fecha_fin_fija',
+                ])
+        );
     }
 }

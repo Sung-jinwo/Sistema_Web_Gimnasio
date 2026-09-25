@@ -27,6 +27,11 @@
     <form id="formCreateAlumno" action="{{ route('alumnos.store') }}" method="POST" class="space-y-6">
         @csrf
 
+        <div data-form-errors class="hidden p-4 bg-red-50 border-l-4 border-red-500 rounded" role="alert">
+            <div class="font-medium text-red-800">Por favor corrige los siguientes errores:</div>
+            <ul data-form-errors-list class="mt-2 list-disc list-inside text-sm text-red-700"></ul>
+        </div>
+
         {{-- Sección 1: Información Personal --}}
         <div class="space-y-4 ">
             <div class="flex items-center gap-2 pb-2 border-b border-gray-200">
@@ -275,7 +280,8 @@
             <button
                 type="submit"
                 form="formCreateAlumno"
-                class="flex-1 px-4 py-2.5 bg-gradient-to-r from-pink-600 to-pink-700 text-white rounded-lg font-medium hover:from-pink-700 hover:to-pink-800 active:from-pink-800 active:to-pink-900 transition-all shadow-lg shadow-pink-500/50 hover:shadow-xl hover:shadow-pink-500/60 flex items-center justify-center gap-2">
+                data-loading-text="Registrando…"
+                class="flex-1 px-4 py-2.5 min-h-[44px] bg-gradient-to-r from-pink-600 to-pink-700 text-white rounded-lg font-medium hover:from-pink-700 hover:to-pink-800 active:from-pink-800 active:to-pink-900 transition-all shadow-lg shadow-pink-500/50 hover:shadow-xl hover:shadow-pink-500/60 flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-wait">
                 <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
                 </svg>

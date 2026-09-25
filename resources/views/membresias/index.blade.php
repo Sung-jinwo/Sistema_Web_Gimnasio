@@ -6,9 +6,11 @@
 <div id="membresiasRoot" x-data="{ showCreateModal: false, showEditModal: false }" class="w-full space-y-5">
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
         <h1 class="text-2xl font-bold text-gray-900">Catálogo de Membresías</h1>
-        <button type="button" @click="showCreateModal = true" class="inline-flex items-center px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition">
-            <i class="fas fa-plus mr-2"></i> Nueva Membresía
-        </button>
+        @can('create', App\Models\Membresia::class)
+            <button type="button" @click="showCreateModal = true" class="inline-flex items-center px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition">
+                <i class="fas fa-plus mr-2"></i> Nueva Membresía
+            </button>
+        @endcan
     </div>
 
     <div class="bg-white rounded-lg shadow-sm p-4 mb-4">
@@ -32,24 +34,30 @@
 
     <div class="bg-white rounded-lg shadow-sm overflow-hidden">
         <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
+            <table data-card="compacta" class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
+                        <th data-card-prioritario class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Tipo</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Modalidad</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Precio</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">Comisión</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">Duración</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">Categoría</th>
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                        <th data-card-prioritario class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Precio</th>
+                        <th data-card-oculto class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">Comisión</th>
+                        <th data-card-oculto class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">Duración</th>
+                        <th data-card-oculto class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">Categoría</th>
+                        <th data-card-prioritario class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+                        @can('create', App\Models\Membresia::class)
+                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                        @endcan
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
                     @forelse($membresias as $membresia)
                     <tr class="hover:bg-gray-50">
-                        <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">{{ $membresia->mem_nombre }}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">{{ $membresia->mem_nombre }}
+                            @if($membresia->permite_congelamiento)
+                                <i class="fas fa-snowflake text-blue-400 ml-1" title="Permite congelamiento"></i>
+                            @endif
+                        </td>
                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500">{{ $membresia->mem_tipo }}</td>
                         <td class="px-4 py-3 whitespace-nowrap text-sm">
                             <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
@@ -57,7 +65,7 @@
                             </span>
                         </td>
                         <td class="px-4 py-3 whitespace-nowrap text-sm font-semibold text-gray-900">S/ {{ number_format($membresia->mem_precio, 2) }}</td>
-                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500 hidden md:table-cell">{{ $membresia->comision }}%</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500 hidden md:table-cell">S/ {{ number_format($membresia->comision, 2) }}</td>
                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-500 hidden md:table-cell">{{ $membresia->mem_duracion }} días</td>
                         <td class="px-4 py-3 whitespace-nowrap text-sm hidden lg:table-cell">
                             <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">{{ $membresia->mem_categoria }}</span>
@@ -69,24 +77,26 @@
                                 <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-red-100 text-red-800">Inactivo</span>
                             @endif
                         </td>
+                        @if(auth()->user()->hasRole('Administrador'))
                         <td class="px-4 py-3 whitespace-nowrap text-center">
                             <div class="flex justify-center gap-2">
-                                <button type="button" onclick="editMembresia({{ $membresia->id_mem }})" class="text-blue-600 hover:text-blue-900" title="Editar">
-                                    <i class="fas fa-edit"></i>
+                                <button type="button" onclick="editMembresia({{ $membresia->id_mem }})" class="btn-accion text-green-600 hover:text-green-900" title="Editar">
+                                    <i class="fas fa-pen-to-square"></i>
                                 </button>
                                 <form action="{{ route('membresias.destroy', $membresia->id_mem) }}" method="POST" class="inline" onsubmit="return confirm('¿Confirma el cambio de estado?')">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="{{ $membresia->estado === 'A' ? 'text-red-600' : 'text-green-600' }}" title="Cambiar estado">
-                                        <i class="fas {{ $membresia->estado === 'A' ? 'fa-toggle-on' : 'fa-toggle-off' }}"></i> {{ $membresia->estado === 'A' ? 'Desactivar' : 'Activar' }}
+                                    <button type="submit" class="btn-accion {{ $membresia->estado === 'A' ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900' }}" title="{{ $membresia->estado === 'A' ? 'Desactivar' : 'Activar' }}">
+                                        <i class="fas {{ $membresia->estado === 'A' ? 'fa-toggle-on' : 'fa-toggle-off' }}"></i>
                                     </button>
                                 </form>
                             </div>
                         </td>
+                        @endif
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="9" class="px-4 py-8 text-center text-gray-500">No se encontraron membresías.</td>
+                        <td colspan="{{ auth()->user()->hasRole('Administrador') ? 9 : 8 }}" class="px-4 py-8 text-center text-gray-500">No se encontraron membresías.</td>
                     </tr>
                     @endforelse
                 </tbody>
@@ -99,6 +109,7 @@
         @endif
     </div>
 
+    @can('create', App\Models\Membresia::class)
     <x-modal-form show="showCreateModal" title="Nueva Membresía" subtitle="Complete los datos del plan" icon='<i class="fas fa-award text-white"></i>' size="lg" headerColor="purple">
         <form id="createForm" method="POST" action="{{ route('membresias.store') }}" class="space-y-4">
             @csrf
@@ -113,7 +124,7 @@
                     <input type="number" step="0.01" id="mem_precio" name="mem_precio" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
                 </div>
                 <div>
-                    <label for="comision" class="block text-sm font-medium text-gray-700 mb-1">Comisión (%)</label>
+                    <label for="comision" class="block text-sm font-medium text-gray-700 mb-1">Comisión fija (S/)</label>
                     <input type="number" step="0.01" id="comision" name="comision" value="0" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
                 </div>
             </div>
@@ -176,6 +187,11 @@
                 <textarea id="mem_beneficios" name="mem_beneficios" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"></textarea>
             </div>
 
+            <label class="flex items-center gap-2 text-sm text-gray-700">
+                <input type="checkbox" name="permite_congelamiento" value="1" class="w-4 h-4 text-pink-600 border-gray-300 rounded focus:ring-pink-500">
+                Permite congelamiento (cualquier duración)
+            </label>
+
             <div class="flex gap-3 pt-4">
                 <button type="button" @click="showCreateModal = false" class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition">
                     Cancelar
@@ -202,7 +218,7 @@
                     <input type="number" step="0.01" id="edit_mem_precio" name="mem_precio" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
                 </div>
                 <div>
-                    <label for="edit_comision" class="block text-sm font-medium text-gray-700 mb-1">Comisión (%)</label>
+                    <label for="edit_comision" class="block text-sm font-medium text-gray-700 mb-1">Comisión fija (S/)</label>
                     <input type="number" step="0.01" id="edit_comision" name="comision" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
                 </div>
             </div>
@@ -265,6 +281,11 @@
                 <textarea id="edit_mem_beneficios" name="mem_beneficios" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"></textarea>
             </div>
 
+            <label class="flex items-center gap-2 text-sm text-gray-700">
+                <input type="checkbox" id="edit_permite_congelamiento" name="permite_congelamiento" value="1" class="w-4 h-4 text-pink-600 border-gray-300 rounded focus:ring-pink-500">
+                Permite congelamiento (cualquier duración)
+            </label>
+
             <div class="flex gap-3 pt-4">
                 <button type="button" @click="showEditModal = false" class="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition">
                     Cancelar
@@ -275,8 +296,10 @@
             </div>
         </form>
     </x-modal-form>
+    @endcan
 </div>
 
+@can('create', App\Models\Membresia::class)
 @push('scripts')
 <script>
 function toggleModalidad(valor) {
@@ -334,6 +357,7 @@ function editMembresia(id) {
         document.getElementById('edit_mem_categoria').value = data.mem_categoria || 'Regular';
         document.getElementById('edit_mem_tipo').value = data.mem_tipo || 'Mensual';
         document.getElementById('edit_mem_beneficios').value = data.mem_beneficios || '';
+        document.getElementById('edit_permite_congelamiento').checked = Boolean(Number(data.permite_congelamiento));
         
         const modalidad = data.modalidad === 'por_duracion' ? 'por_meses' : (data.modalidad || 'por_meses');
         document.getElementById('editForm').querySelector(`input[name="modalidad"][value="${modalidad}"]`).checked = true;
@@ -344,4 +368,5 @@ function editMembresia(id) {
 }
 </script>
 @endpush
+@endcan
 @endsection

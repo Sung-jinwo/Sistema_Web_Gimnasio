@@ -20,6 +20,8 @@ class ReportController extends Controller
 
     public function index()
     {
+        $this->authorizeReporte();
+
         return view('reportes.index');
     }
 
@@ -160,7 +162,7 @@ class ReportController extends Controller
     protected function authorizeReporte(): void
     {
         $user = auth()->user();
-        if (! $user->hasRole(['Administrador', 'Local'])) {
+        if (! $user->hasRole('Administrador')) {
             abort(403, 'No tienes permiso para acceder a los reportes.');
         }
     }

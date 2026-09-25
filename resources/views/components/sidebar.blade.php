@@ -1,4 +1,4 @@
-<div>
+<div x-init="Object.assign(expandedMenus, @js($initiallyExpandedMenus))">
 
     <!-- Mobile menu overlay -->
             <div x-show="mobileMenuOpen" 
@@ -10,8 +10,8 @@
             <aside 
                 :class="sidebarOpen ? 'w-64' : 'w-20'"
                 class="bg-gray-900 text-white transition-all duration-300 ease-in-out border-r border-gray-800 shadow-lg fixed lg:static h-full z-50 lg:z-0 flex flex-col"
-                x-show="mobileMenuOpen || window.innerWidth >= 1024"
-                @click.away="if (window.innerWidth < 1024) mobileMenuOpen = false"
+                x-show="mobileMenuOpen || !isMobile"
+                @click.away="if (isMobile) mobileMenuOpen = false"
                 x-cloak>
                 
                 <!-- Logo -->

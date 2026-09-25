@@ -9,7 +9,7 @@ class CategoriaFactory extends Factory
     public function definition(): array
     {
         return [
-            'cat_nombre' => $this->faker->randomElement(['Suplementos', 'Bebidas', 'Accesorios', 'Ropa', 'Equipamiento']),
+            'cat_nombre' => 'Categoría '.$this->faker->unique()->bothify('####-??'),
         ];
     }
 }

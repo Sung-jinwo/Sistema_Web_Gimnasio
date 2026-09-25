@@ -4,8 +4,8 @@ namespace App\Services;
 
 use App\Models\Alumno;
 use App\Models\MembresiaAlumno;
-use App\Models\Venta;
 use Carbon\Carbon;
+use Illuminate\Database\Eloquent\Builder;
 
 class FollowUpService
 {
@@ -14,37 +14,14 @@ class FollowUpService
         $query = MembresiaAlumno::with(['alumno.sede', 'membresia'])
             ->where('estado', 'activa');
 
-        if ($usuario && ! $usuario->hasRole('Administrador')) {
-            $query->whereHas('alumno', function ($q) use ($usuario) {
-                $q->where('fksede', $usuario->fksede);
-            });
-        }
-
-        if (! empty($filtros['sede'])) {
-            $query->whereHas('alumno', function ($q) use ($filtros) {
-                $q->where('fksede', $filtros['sede']);
-            });
-        }
-
-        if (! empty($filtros['empleado'])) {
-            $query->whereHas('alumno', function ($q) use ($filtros) {
-                $q->where('fkuser', $filtros['empleado']);
-            });
-        }
+        $this->aplicarAlcance($query, $filtros, $usuario);
 
         $hoy = now()->format('Y-m-d');
-        $query->where('fecha_fin', '>=', $hoy);
-
-        if (! empty($filtros['mes'])) {
-            $query->whereMonth('fecha_fin', $filtros['mes']);
-            if (! empty($filtros['anio'])) {
-                $query->whereYear('fecha_fin', $filtros['anio']);
-            }
-        }
-
-        $dias = $filtros['dias'] ?? 5;
-        $fechaLimite = now()->addDays($dias)->format('Y-m-d');
-        $query->where('fecha_fin', '<=', $fechaLimite);
+        $mes = $filtros['mes'] ?? now()->month;
+        $anio = $filtros['anio'] ?? now()->year;
+        $query->where('fecha_fin', '>=', $hoy)
+            ->whereMonth('fecha_fin', $mes)
+            ->whereYear('fecha_fin', $anio);
 
         return $query->orderBy('fecha_fin')->paginate(15);
     }
@@ -54,58 +31,19 @@ class FollowUpService
         $query = MembresiaAlumno::with(['alumno.sede', 'membresia'])
             ->where('estado', 'activa');
 
-        if ($usuario && ! $usuario->hasRole('Administrador')) {
-            $query->whereHas('alumno', function ($q) use ($usuario) {
-                $q->where('fksede', $usuario->fksede);
-            });
-        }
-
-        if (! empty($filtros['sede'])) {
-            $query->whereHas('alumno', function ($q) use ($filtros) {
-                $q->where('fksede', $filtros['sede']);
-            });
-        }
-
-        if (! empty($filtros['empleado'])) {
-            $query->whereHas('alumno', function ($q) use ($filtros) {
-                $q->where('fkuser', $filtros['empleado']);
-            });
-        }
+        $this->aplicarAlcance($query, $filtros, $usuario);
 
         $hoy = now()->format('Y-m-d');
-        $query->where('fecha_fin', '<', $hoy);
-
-        if (! empty($filtros['mes'])) {
-            $query->whereMonth('fecha_fin', $filtros['mes']);
-            if (! empty($filtros['anio'])) {
-                $query->whereYear('fecha_fin', $filtros['anio']);
-            }
-        }
+        $mes = $filtros['mes'] ?? now()->month;
+        $anio = $filtros['anio'] ?? now()->year;
+        $query->where('fecha_fin', '<', $hoy)
+            ->whereMonth('fecha_fin', $mes)
+            ->whereYear('fecha_fin', $anio);
 
         return $query->orderBy('fecha_fin')->paginate(15);
     }
 
-    public function obtenerPagosPendientes(array $filtros = [], $usuario = null)
-    {
-        $query = Venta::with(['alumno.sede', 'producto'])
-            ->whereIn('estado_pago', ['parcial', 'pendiente']);
-
-        if ($usuario && ! $usuario->hasRole('Administrador')) {
-            $query->where('fksede', $usuario->fksede);
-        }
-
-        if (! empty($filtros['sede'])) {
-            $query->where('fksede', $filtros['sede']);
-        }
-
-        if (! empty($filtros['empleado'])) {
-            $query->where('fkusers', $filtros['empleado']);
-        }
-
-        return $query->orderBy('created_at')->paginate(15);
-    }
-
-    public function generarMensajeWhatsApp(Alumno $alumno, string $tipo = 'vencimiento'): string
+    public function generarMensajeWhatsApp(Alumno $alumno, string $tipo = 'vencimiento'): array
     {
         $nombre = $alumno->alum_nombre;
         $telefono = preg_replace('/[^0-9]/', '', $alumno->alum_telefo ?? '');
@@ -128,7 +66,6 @@ class FollowUpService
         $mensajes = [
             'vencimiento' => "Hola {$nombre} 👋\n\nTe recordamos que tu membresía está próxima a vencer el {$fechaVencimiento}.\n\nSi deseas renovarla, podemos ayudarte. ¡Te esperamos!",
             'vencido' => "Hola {$nombre} 👋\n\nTu membresía venció el {$fechaVencimiento}.\n\nTe invitamos a renovarla para seguir disfrutando de nuestros servicios. ¡Te esperamos!",
-            'pago_pendiente' => "Hola {$nombre} 👋\n\nTe recordamos que tienes un pago pendiente.\n\nPor favor acércate a regularizar tu situación. ¡Gracias!",
         ];
 
         return [
@@ -136,5 +73,25 @@ class FollowUpService
             'mensaje' => $mensajes[$tipo] ?? $mensajes['vencimiento'],
             'url' => "https://wa.me/{$telefono}?text=".urlencode($mensajes[$tipo] ?? $mensajes['vencimiento']),
         ];
+    }
+
+    private function aplicarAlcance(Builder $query, array $filtros, $usuario): void
+    {
+        if ($usuario && ! $usuario->hasRole('Administrador')) {
+            $query->whereHas('alumno', function ($alumnos) use ($usuario) {
+                $alumnos->where('fksede', $usuario->fksede)
+                    ->where('fkuser', $usuario->id);
+            });
+
+            return;
+        }
+
+        if (! empty($filtros['sede'])) {
+            $query->whereHas('alumno', fn ($alumnos) => $alumnos->where('fksede', $filtros['sede']));
+        }
+
+        if (! empty($filtros['empleado'])) {
+            $query->whereHas('alumno', fn ($alumnos) => $alumnos->where('fkuser', $filtros['empleado']));
+        }
     }
 }

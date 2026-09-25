@@ -35,12 +35,14 @@ class AlumnoController extends Controller
         $alumnos = $this->alumnoService->obtenerAlumnosConFiltros($filtros, auth()->user());
         $sedes = Sede::where('sede_estado', true)->orderBy('sede_nombre')->get();
         $sexos = Sexo::orderBy('sexo_nombre')->get();
+        $reporteColumnas = \App\Services\ReporteMensualService::columnas();
+        $reporteAnios = app(\App\Services\ReporteMensualService::class)->aniosDisponibles();
 
         if ($request->expectsJson()) {
             return response()->json($alumnos);
         }
 
-        return view('alumnos.index', compact('alumnos', 'sedes', 'sexos'));
+        return view('alumnos.index', compact('alumnos', 'sedes', 'sexos', 'reporteColumnas', 'reporteAnios'));
     }
 
     public function store(AlumnoRequest $request)
@@ -83,6 +85,11 @@ class AlumnoController extends Controller
             return response()->json($ficha);
         }
 
+        if (request()->user()->can('update', $alumno)) {
+            $ficha['sedes'] = Sede::where('sede_estado', true)->orderBy('sede_nombre')->get();
+            $ficha['sexos'] = Sexo::orderBy('sexo_nombre')->get();
+        }
+
         return view('alumnos.show', $ficha);
     }
 
@@ -95,9 +102,10 @@ class AlumnoController extends Controller
             return response()->json($alumno);
         }
 
-        $sedes = Sede::where('sede_estado', true)->orderBy('sede_nombre')->get();
-
-        return view('alumnos.edit', compact('alumno', 'sedes'));
+        return redirect()->route('alumnos.show', [
+            'alumno' => $alumno->id_alumno,
+            'editar' => 1,
+        ]);
     }
 
     public function update(AlumnoRequest $request, $id)

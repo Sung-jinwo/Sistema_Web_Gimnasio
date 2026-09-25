@@ -23,6 +23,32 @@ class MembresiaAlumno extends Model
         return $this->belongsTo(Membresia::class, 'fkmem', 'id_mem');
     }
 
+    public function venta()
+    {
+        return $this->belongsTo(Venta::class, 'fkventa', 'id_venta');
+    }
+
+    public function congelamientos()
+    {
+        return $this->hasMany(MembresiaCongelamiento::class, 'fkmembresia_alumno', 'id_membresia_alumno');
+    }
+
+    public function ajustesVigencia()
+    {
+        return $this->hasMany(MembresiaAjusteVigencia::class, 'fkmembresia_alumno', 'id_membresia_alumno');
+    }
+
+    /**
+     * Congelamiento programado o activo que interfiere con la vigencia.
+     */
+    public function congelamientoVigente(): ?MembresiaCongelamiento
+    {
+        return $this->congelamientos()
+            ->whereIn('estado', [MembresiaCongelamiento::ESTADO_PROGRAMADO, MembresiaCongelamiento::ESTADO_ACTIVO])
+            ->orderByDesc('fecha_inicio')
+            ->first();
+    }
+
     public function scopeActivas($query)
     {
         return $query->where('estado', 'activa')

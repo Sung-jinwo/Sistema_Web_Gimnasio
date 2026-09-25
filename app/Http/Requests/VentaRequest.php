@@ -2,7 +2,10 @@
 
 namespace App\Http\Requests;
 
+use App\Models\Membresia;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\Validator;
 
 class VentaRequest extends FormRequest
 {
@@ -15,11 +18,15 @@ class VentaRequest extends FormRequest
     {
         $rules = [
             'tipo_venta' => 'required|in:membresia,producto,rapida',
-            'fkmetodo' => 'required|exists:metodos_pago,id_metod',
+            'fkmetodo' => 'nullable|exists:metodos_pago,id_metod',
+            'cobros' => 'required|array|min:1|max:2',
+            'cobros.*.fkmetodo' => 'required|distinct|exists:metodos_pago,id_metod',
+            'cobros.*.monto' => 'required|numeric|min:0',
             'venta_descuento' => 'nullable|numeric|min:0',
             'estado_venta' => 'nullable|in:completado,reservado',
             'estado_pago' => 'nullable|in:pagado,parcial,pendiente',
             'monto_pagado' => 'nullable|numeric|min:0',
+            'pago_total_legacy' => 'nullable|boolean',
             'fecha_acordada' => 'nullable|date|after_or_equal:today',
             'venta_fecha' => 'nullable|date',
             'observacion' => 'nullable|string',
@@ -38,12 +45,45 @@ class VentaRequest extends FormRequest
             $rules['detalles.*.cantidad'] = 'required|integer|min:1';
             $rules['fkproducto'] = 'required_without:detalles|exists:productos,id_productos';
         } elseif ($this->input('tipo_venta') === 'membresia') {
-            $rules['fkalum'] = 'required|exists:alumno,id_alumno';
+            $rules['fkalum'] = 'nullable|exists:alumno,id_alumno';
             $rules['fkmem'] = 'required|exists:membresias,id_mem';
             $rules['fecha_inicio'] = 'nullable|date';
+            $rules['fksede'] = ['nullable', Rule::exists('sedes', 'id_sede')->where('sede_estado', true)];
         }
 
         return $rules;
+    }
+
+    public function withValidator(Validator $validator): void
+    {
+        $validator->after(function (Validator $validator) {
+            if ($this->input('tipo_venta') !== 'membresia' || ! $this->filled('fkalum')) {
+                return;
+            }
+
+            $membresia = Membresia::where('estado', 'A')->find($this->input('fkmem'));
+            if (! $membresia) {
+                return;
+            }
+
+            $tieneRangoFijo = $membresia->fecha_inicio_fija && $membresia->fecha_fin_fija;
+            if (! $tieneRangoFijo && ! $this->filled('fecha_inicio')) {
+                $validator->errors()->add('fecha_inicio', 'Debe seleccionar la fecha de inicio de la membresía.');
+            }
+        });
+    }
+
+    protected function prepareForValidation(): void
+    {
+        if (! $this->has('cobros') && $this->filled('fkmetodo')) {
+            $this->merge([
+                'cobros' => [[
+                    'fkmetodo' => $this->input('fkmetodo'),
+                    'monto' => $this->input('monto_pagado', 0),
+                ]],
+                'pago_total_legacy' => ! $this->has('monto_pagado'),
+            ]);
+        }
     }
 
     public function messages(): array
@@ -55,10 +95,15 @@ class VentaRequest extends FormRequest
             'fkalum.exists' => 'El alumno seleccionado no es válido.',
             'fkmem.required' => 'Debe seleccionar una membresía.',
             'fkmem.exists' => 'La membresía seleccionada no es válida.',
+            'fksede.exists' => 'La sede seleccionada no es válida.',
             'fkproducto.required' => 'Debe seleccionar un producto.',
             'fkproducto.exists' => 'El producto seleccionado no es válido.',
             'fkmetodo.required' => 'Debe seleccionar un método de pago.',
             'fkmetodo.exists' => 'El método de pago seleccionado no es válido.',
+            'cobros.required' => 'Debe indicar al menos un método de pago.',
+            'cobros.max' => 'Solo se permiten dos métodos de pago.',
+            'cobros.*.fkmetodo.distinct' => 'Los métodos de pago deben ser diferentes.',
+            'cobros.*.monto.min' => 'El importe del pago no puede ser negativo.',
             'cantidad.required' => 'Debe ingresar la cantidad.',
             'cantidad.integer' => 'La cantidad debe ser un número entero.',
             'cantidad.min' => 'La cantidad debe ser al menos 1.',

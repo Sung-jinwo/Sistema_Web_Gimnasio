@@ -12,6 +12,8 @@ class ProductoController extends Controller
 {
     public function index(Request $request)
     {
+        $this->authorize('viewAny', Producto::class);
+
         $query = Producto::with(['categoria', 'user', 'sede']);
         if (auth()->user()->hasRole('Administrador')) {
             if ($request->filled('sede')) {
@@ -43,6 +45,8 @@ class ProductoController extends Controller
 
     public function create()
     {
+        $this->authorize('create', Producto::class);
+
         $categorias = Categoria::all();
 
         return redirect()->route('productos.index');
@@ -50,6 +54,8 @@ class ProductoController extends Controller
 
     public function store(ProductoRequest $request)
     {
+        $this->authorize('create', Producto::class);
+
         $data = $request->validated();
         $data['fkusers'] = auth()->id();
         $data['fksede'] = auth()->user()->hasRole('Administrador') ? $request->integer('fksede') : auth()->user()->fksede;
@@ -72,6 +78,7 @@ class ProductoController extends Controller
     public function show(string $id)
     {
         $producto = Producto::with(['categoria', 'user', 'sede'])->findOrFail($id);
+        $this->authorize('view', $producto);
 
         return view('productos.show', compact('producto'));
     }
@@ -79,6 +86,7 @@ class ProductoController extends Controller
     public function edit(string $id)
     {
         $producto = Producto::findOrFail($id);
+        $this->authorize('update', $producto);
         $categorias = Categoria::all();
 
         if (request()->expectsJson()) {
@@ -92,6 +100,7 @@ class ProductoController extends Controller
     {
         try {
             $producto = Producto::findOrFail($id);
+            $this->authorize('update', $producto);
             $data = $request->validated();
             if (! auth()->user()->hasRole('Administrador')) {
                 unset($data['fksede']);
@@ -127,6 +136,7 @@ class ProductoController extends Controller
     {
         try {
             $producto = Producto::findOrFail($id);
+            $this->authorize('delete', $producto);
             $producto->update(['prod_estado' => ! ($producto->prod_estado ?? true)]);
 
             if ($request->expectsJson()) {

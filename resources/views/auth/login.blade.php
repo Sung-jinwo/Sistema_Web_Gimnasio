@@ -4,12 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() }}">
-    <title>Login - SIGG</title>
+    <meta name="theme-color" content="#f9fafb">
+    <title>Iniciar sesión | SIGG</title>
+    <link rel="icon" type="image/png" href="{{ asset('icon/icongym.png') }}">
+    <link rel="apple-touch-icon" href="{{ asset('icon/icongym.png') }}">
     
     @vite(['resources/css/app.css', 'resources/js/app.js'])
     
     <style>
+        /* Critical: evita flash blanco antes de que cargue el CSS de Vite. */
+        html { background-color: #f9fafb; }
+        body { background-color: #f9fafb; }
         [x-cloak] { display: none !important; }
+        @media (prefers-reduced-motion: reduce) {
+            .animate-spin { animation: none; }
+        }
     </style>
 </head>
 <body class="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
@@ -177,14 +186,15 @@
                     <button
                         type="submit"
                         :disabled="isLoading"
-                        class="w-full bg-pink-600 hover:bg-pink-700 text-white py-3 rounded-lg font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2">
-                        <span x-show="!isLoading">Iniciar Sesión</span>
-                        <span x-show="isLoading" x-cloak>
-                            <svg class="animate-spin h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                        :aria-busy="isLoading.toString()"
+                        class="w-full min-h-[48px] bg-pink-600 hover:bg-pink-700 text-white py-3 rounded-lg font-semibold transition-colors disabled:opacity-70 disabled:cursor-wait flex items-center justify-center">
+                        <span x-show="!isLoading" class="flex items-center justify-center gap-2 w-full">Iniciar Sesión</span>
+                        <span x-show="isLoading" x-cloak class="flex items-center justify-center gap-2 w-full" role="status" aria-live="polite">
+                            <svg class="animate-spin h-5 w-5 shrink-0 text-white" fill="none" viewBox="0 0 24 24" aria-hidden="true">
                                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                             </svg>
-                            Iniciando sesión...
+                            <span>Iniciando sesión…</span>
                         </span>
                     </button>
                 </form>

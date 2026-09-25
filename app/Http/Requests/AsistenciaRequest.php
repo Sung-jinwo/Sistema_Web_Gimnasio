@@ -14,17 +14,18 @@ class AsistenciaRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'fkalum' => 'required|exists:alumno,id_alumno',
-            'tipo_ingreso' => 'required',
+            'codigo_documento' => 'required|string|max:20',
+            'tipo_ingreso' => 'required|in:codigo,dni',
         ];
     }
 
     public function messages(): array
     {
         return [
-            'fkalum.required' => 'Debe seleccionar un alumno',
-            'fkalum.exists' => 'El alumno seleccionado no existe',
+            'codigo_documento.required' => 'Debe ingresar el código o DNI del alumno.',
+            'codigo_documento.max' => 'El código o DNI no puede superar 20 caracteres.',
             'tipo_ingreso.required' => 'Debe seleccionar el tipo de ingreso',
+            'tipo_ingreso.in' => 'El tipo de ingreso debe ser código o DNI.',
         ];
     }
 }

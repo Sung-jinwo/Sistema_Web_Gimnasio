@@ -21,22 +21,31 @@ class SeguimientoController extends Controller
     {
         $this->authorizeSeguimiento();
 
+        $mes = $request->integer('mes');
+        if ($mes < 1 || $mes > 12) {
+            $mes = now()->month;
+        }
+
+        $anio = $request->integer('anio');
+        if ($anio < now()->year - 1 || $anio > now()->year + 1) {
+            $anio = now()->year;
+        }
+
         $filtros = [
             'sede' => $request->input('sede'),
             'empleado' => $request->input('empleado'),
-            'mes' => $request->input('mes'),
-            'anio' => $request->input('anio'),
-            'dias' => $request->input('dias', 5),
+            'mes' => $mes,
+            'anio' => $anio,
         ];
 
         $tab = $request->input('tab', 'por_vencer');
+        if (! in_array($tab, ['por_vencer', 'vencidos'], true)) {
+            $tab = 'por_vencer';
+        }
 
         switch ($tab) {
             case 'vencidos':
                 $registros = $this->followUpService->obtenerVencidos($filtros, auth()->user());
-                break;
-            case 'pagos_pendientes':
-                $registros = $this->followUpService->obtenerPagosPendientes($filtros, auth()->user());
                 break;
             default:
                 $registros = $this->followUpService->obtenerVencimientos($filtros, auth()->user());
@@ -44,9 +53,9 @@ class SeguimientoController extends Controller
         }
 
         $sedes = Sede::where('sede_estado', true)->orderBy('sede_nombre')->get();
-        $empleados = User::whereIn('fksede', auth()->user()->hasRole('Administrador') ? Sede::pluck('id_sede') : [auth()->user()->fksede])
-            ->orderBy('name')
-            ->get();
+        $empleados = auth()->user()->hasRole('Administrador')
+            ? User::whereIn('id', Alumno::query()->whereNotNull('fkuser')->select('fkuser'))->orderBy('name')->get()
+            : collect();
 
         if ($request->expectsJson()) {
             return response()->json([
@@ -76,7 +85,12 @@ class SeguimientoController extends Controller
     {
         $this->authorizeSeguimiento();
 
-        $alumno = Alumno::findOrFail($alumnoId);
+        $alumno = Alumno::query()
+            ->when(! auth()->user()->hasRole('Administrador'), function ($query) {
+                $query->where('fksede', auth()->user()->fksede)
+                    ->where('fkuser', auth()->id());
+            })
+            ->findOrFail($alumnoId);
         $tipo = $request->input('tipo', 'vencimiento');
 
         $datos = $this->followUpService->generarMensajeWhatsApp($alumno, $tipo);

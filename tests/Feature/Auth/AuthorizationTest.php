@@ -25,13 +25,34 @@ class AuthorizationTest extends TestCase
 
         $this->actingAs($admin);
 
+        $sede = Sede::factory()->create();
+        \App\Models\Venta::factory()->create([
+            'fksede' => $sede->id_sede, 'estado_venta' => 'completado', 'venta_total' => 200,
+        ]);
+        $alumno = \App\Models\Alumno::factory()->create(['fksede' => $sede->id_sede]);
+        $plan = \App\Models\Membresia::factory()->create(['mem_duracion' => 30]);
+        \App\Models\MembresiaAlumno::create([
+            'fkalumno' => $alumno->id_alumno, 'fkmem' => $plan->id_mem,
+            'fecha_inicio' => today()->subDays(2)->format('Y-m-d'),
+            'fecha_fin' => today()->addDays(28)->format('Y-m-d'),
+            'precio_vendido' => $plan->mem_precio, 'estado' => 'activa',
+        ]);
+
+        $this->get('/dashboard')->assertOk()
+            ->assertSee('Ingresos vs Gastos')
+            ->assertSee('Membresías por estado')
+            ->assertSee('Ventas por sede')
+            ->assertSee('data-grafico', false);
         $this->get('/alumnos')->assertStatus(200);
         $this->get('/membresias')->assertStatus(200);
         $this->get('/productos')->assertStatus(200);
         $this->get('/ventas')->assertStatus(200);
-        $this->get('/pagos')->assertStatus(200);
+        $this->get('/cobranza')->assertStatus(200);
+        $this->get('/pagos')->assertRedirect('/cobranza');
         $this->get('/gastos')->assertStatus(200);
         $this->get('/caja')->assertStatus(200);
+        $this->get('/comisiones')->assertStatus(200);
+        $this->get('/reportes')->assertStatus(200);
         $this->get('/usuarios')->assertStatus(200);
         $this->get('/sedes')->assertStatus(200);
         $this->get('/auditoria')->assertStatus(200);
@@ -49,7 +70,8 @@ class AuthorizationTest extends TestCase
         $this->get('/membresias')->assertStatus(200);
         $this->get('/productos')->assertStatus(200);
         $this->get('/ventas')->assertStatus(200);
-        $this->get('/pagos')->assertStatus(200);
+        $this->get('/cobranza')->assertStatus(200);
+        $this->get('/pagos')->assertRedirect('/cobranza');
         $this->get('/gastos')->assertStatus(200);
         $this->get('/caja')->assertStatus(200);
     }
@@ -65,6 +87,9 @@ class AuthorizationTest extends TestCase
         $this->get('/usuarios')->assertStatus(403);
         $this->get('/sedes')->assertStatus(403);
         $this->get('/auditoria')->assertStatus(403);
+        $this->get('/comisiones')->assertStatus(403);
+        $this->get('/reportes')->assertStatus(403);
+        $this->get('/reportes/ventas')->assertStatus(403);
     }
 
     public function test_redes_user_can_access_student_modules(): void
@@ -78,6 +103,10 @@ class AuthorizationTest extends TestCase
         $this->get('/alumnos')->assertStatus(200);
         $this->get('/membresias')->assertStatus(200);
         $this->get('/seguimiento')->assertStatus(200);
+        $this->get('/ventas')->assertStatus(200);
+        $this->get('/cobranza')->assertStatus(200);
+        $this->get('/caja')->assertStatus(200);
+        $this->get(route('comisiones.mis-comisiones'))->assertStatus(200);
     }
 
     public function test_redes_user_cannot_access_commercial_modules(): void
@@ -89,9 +118,9 @@ class AuthorizationTest extends TestCase
         $this->actingAs($redes);
 
         $this->get('/productos')->assertStatus(403);
-        $this->get('/ventas')->assertStatus(403);
         $this->get('/gastos')->assertStatus(403);
-        $this->get('/caja')->assertStatus(403);
+        $this->get('/comisiones')->assertStatus(403);
+        $this->get('/reportes')->assertStatus(403);
     }
 
     public function test_unauthenticated_user_is_redirected_to_login(): void

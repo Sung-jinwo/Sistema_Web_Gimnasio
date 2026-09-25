@@ -1,12 +1,11 @@
 @extends('layouts.app')
 
+@section('page-title', 'Reporte de Gastos')
+@section('page-subtitle', 'Análisis de gastos por período')
+
 @section('content')
 <div class="container mx-auto px-4 py-6">
-    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-        <div>
-            <h1 class="text-2xl font-bold text-gray-900">Reporte de Gastos</h1>
-            <p class="text-gray-600">Análisis de gastos por período</p>
-        </div>
+    <div class="flex justify-end mb-6">
         <a href="{{ route('reportes.index') }}" class="inline-flex items-center px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition">
             <i class="fas fa-arrow-left mr-2"></i> Volver
         </a>
@@ -74,11 +73,11 @@
     <div class="bg-white rounded-lg shadow-sm p-6 mb-6">
         <h3 class="text-lg font-bold text-gray-900 mb-4">Resumen por Categoría</h3>
         <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
+            <table data-card="compacta" class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Categoría</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Total</th>
+                        <th data-card-prioritario class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Categoría</th>
+                        <th data-card-prioritario class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Total</th>
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
@@ -97,15 +96,15 @@
     {{-- Tabla de Gastos --}}
     <div class="bg-white rounded-lg shadow-sm overflow-hidden">
         <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
+            <table data-card="compacta" class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Concepto</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Categoría</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Usuario</th>
-                        <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Monto</th>
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Estado</th>
+                        <th data-card-oculto class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Fecha</th>
+                        <th data-card-prioritario class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Concepto</th>
+                        <th data-card-oculto class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Categoría</th>
+                        <th data-card-oculto class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">Usuario</th>
+                        <th data-card-prioritario class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">Monto</th>
+                        <th data-card-prioritario class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase">Estado</th>
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">

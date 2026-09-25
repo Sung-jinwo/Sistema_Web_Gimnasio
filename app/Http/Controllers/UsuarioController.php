@@ -77,9 +77,7 @@ class UsuarioController extends Controller
             ]);
         }
 
-        $roles = Role::orderBy('name')->pluck('name');
-
-        return view('usuarios.edit', compact('usuario', 'roles'));
+        return redirect()->route('usuarios.index');
     }
 
     public function update(UsuarioRequest $request, string $id)

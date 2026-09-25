@@ -1,14 +1,12 @@
 @extends('layouts.app')
 
+@section('page-title','Dashboard Local')
+@section('page-subtitle','Resumen de tu sede y operaciones')
+
 @section('content')
 <div class="container mx-auto px-4 py-6">
-    <div class="mb-6">
-        <h1 class="text-2xl font-bold text-gray-900">Dashboard Local</h1>
-        <p class="text-gray-600">Resumen de tu sede y operaciones</p>
-    </div>
-
     {{-- Métricas de ventas --}}
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
         <x-stat-card 
             title="Ventas Hoy" 
             value="S/ {{ number_format($ventasHoy, 2) }}" 
@@ -20,12 +18,6 @@
             value="S/ {{ number_format($ventasMes, 2) }}" 
             icon="fa-chart-line" 
             color="green" 
-        />
-        <x-stat-card 
-            title="Mi Comisión del Mes" 
-            value="S/ {{ number_format($comisionMes, 2) }}" 
-            icon="fa-percentage" 
-            color="orange" 
         />
     </div>
 

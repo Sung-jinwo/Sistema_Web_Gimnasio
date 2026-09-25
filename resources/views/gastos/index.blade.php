@@ -3,11 +3,21 @@
 @section('content')
 @section('page-title','Gastos')
 @section('page-subtitle','Registro, aprobación y control de egresos')
-<div id="gastosRoot" x-data="{ showRegistrarModal: false, showRechazarModal: false, gastoIdRechazar: null }" class="w-full space-y-5">
+<div id="gastosRoot" x-data="{ showRegistrarModal: @js($errors->any() && old('_formulario') === 'gasto'), showRechazarModal: false, gastoIdRechazar: null }" class="w-full space-y-5">
+    @if(!$cajaPropiaAbierta)
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 p-4 text-amber-900" role="alert">
+            <div>
+                <p class="font-semibold"><i class="fas fa-cash-register mr-2"></i>{{ $bloqueoCaja ?? 'Debes abrir tu caja antes de registrar gastos.' }}</p>
+                <p class="mt-1 text-sm">El gasto se vinculará automáticamente a tu propia caja.</p>
+            </div>
+            <a href="{{ route('caja.index') }}" class="inline-flex shrink-0 items-center justify-center rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white hover:bg-amber-700">Ir a Caja</a>
+        </div>
+    @endif
+
     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
         <h1 class="text-2xl font-bold text-gray-900">Gastos</h1>
         @can('create', App\Models\Gasto::class)
-        <button type="button" @click="showRegistrarModal = true; $nextTick(()=>{const f=document.getElementById('gastoForm');f.reset();f.action='{{ route('gastos.store') }}';f.querySelector('[name=_method]')?.remove()})" class="inline-flex items-center px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition">
+        <button type="button" @click="showRegistrarModal = true; $nextTick(()=>{const f=document.getElementById('gastoForm');f.reset();f.action='{{ route('gastos.store') }}';f.querySelector('[name=_method]')?.remove()})" @disabled(!$cajaPropiaAbierta) class="inline-flex items-center px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition disabled:opacity-50 disabled:cursor-not-allowed" title="{{ $cajaPropiaAbierta ? 'Registrar gasto' : 'Primero debes abrir tu caja' }}">
             <i class="fas fa-plus mr-2"></i> Registrar Gasto
         </button>
         @endcan
@@ -37,15 +47,16 @@
 
     <div class="bg-white rounded-lg shadow-sm overflow-hidden">
         <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
+            <table data-card="compacta" class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Concepto</th>
+                        <th data-card-oculto class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Fecha</th>
+                        <th data-card-prioritario class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Concepto</th>
                         <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">Categoría</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Monto</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">Usuario</th>
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
+                        <th data-card-oculto class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">Método</th>
+                        <th data-card-prioritario class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Monto</th>
+                        <th data-card-oculto class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">Usuario</th>
+                        <th data-card-prioritario class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
                     </tr>
                 </thead>
@@ -55,6 +66,7 @@
                         <td class="px-4 py-3 text-sm text-gray-500">{{ \Carbon\Carbon::parse($gasto->gas_fecha)->format('d/m/Y') }}</td>
                         <td class="px-4 py-3 text-sm font-medium text-gray-900">{{ $gasto->gas_concepto }}</td>
                         <td class="px-4 py-3 text-sm text-gray-700 hidden md:table-cell">{{ $gasto->categoria->cat_nombre ?? '-' }}</td>
+                        <td class="px-4 py-3 text-sm text-gray-700 hidden md:table-cell">{{ $gasto->metodo->metod_nombre ?? 'Efectivo (histórico)' }}</td>
                         <td class="px-4 py-3 text-sm font-semibold text-red-600">S/ {{ number_format($gasto->gas_monto, 2) }}</td>
                         <td class="px-4 py-3 text-sm text-gray-700 hidden lg:table-cell">{{ $gasto->user->name ?? '-' }}</td>
                         <td class="px-4 py-3 text-center">
@@ -69,18 +81,18 @@
                         <td class="px-4 py-3 text-center">
                             <div class="flex justify-center gap-2">
                                 @can('update', $gasto)
-                                <button type="button" onclick="editGasto({{ $gasto->id_gasto }})" class="text-blue-600 hover:text-blue-900" title="Editar">
-                                    <i class="fas fa-edit"></i>
+                                <button type="button" onclick="editGasto({{ $gasto->id_gasto }})" class="btn-accion text-green-600 hover:text-green-900" title="Editar">
+                                    <i class="fas fa-pen-to-square"></i>
                                 </button>
                                 @endcan
                                 @can('aprobar', $gasto)
                                 <form action="{{ route('gastos.aprobar', $gasto->id_gasto) }}" method="POST" class="inline">
                                     @csrf
-                                    <button type="submit" class="text-green-600 hover:text-green-900" title="Aprobar">
+                                    <button type="submit" class="btn-accion text-green-600 hover:text-green-900" title="Aprobar">
                                         <i class="fas fa-check-circle"></i>
                                     </button>
                                 </form>
-                                <button type="button" @click="showRechazarModal = true; gastoIdRechazar = {{ $gasto->id_gasto }}" class="text-red-600 hover:text-red-900" title="Rechazar">
+                                <button type="button" @click="showRechazarModal = true; gastoIdRechazar = {{ $gasto->id_gasto }}" class="btn-accion text-red-600 hover:text-red-900" title="Rechazar">
                                     <i class="fas fa-times-circle"></i>
                                 </button>
                                 @endcan
@@ -89,7 +101,7 @@
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="7" class="px-4 py-8 text-center text-gray-500">No se encontraron gastos.</td>
+                        <td colspan="8" class="px-4 py-8 text-center text-gray-500">No se encontraron gastos.</td>
                     </tr>
                     @endforelse
                 </tbody>
@@ -106,9 +118,10 @@
     <x-modal-form show="showRegistrarModal" title="Registrar Gasto" subtitle="Complete los datos del gasto" icon='<i class="fas fa-receipt text-white"></i>' size="md" headerColor="red">
         <form id="gastoForm" method="POST" action="{{ route('gastos.store') }}" class="space-y-4">
             @csrf
+            <input type="hidden" name="_formulario" value="gasto">
             <div>
                 <label for="gas_concepto" class="block text-sm font-medium text-gray-700 mb-1">Concepto <span class="text-red-500">*</span></label>
-                <input type="text" id="gas_concepto" name="gas_concepto" required maxlength="200" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent" placeholder="Descripción del gasto">
+                <input type="text" id="gas_concepto" name="gas_concepto" value="{{ old('gas_concepto') }}" required maxlength="200" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent" placeholder="Descripción del gasto">
             </div>
 
             <div>
@@ -116,24 +129,29 @@
                 <select id="fkcategoria" name="fkcategoria" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
                     <option value="">Seleccionar categoría...</option>
                     @foreach($categorias as $categoria)
-                        <option value="{{ $categoria->id_categoria }}">{{ $categoria->cat_nombre }}</option>
+                        <option value="{{ $categoria->id_categoria }}" @selected(old('fkcategoria') == $categoria->id_categoria)>{{ $categoria->cat_nombre }}</option>
                     @endforeach
                 </select>
             </div>
 
             <div>
                 <label for="gas_monto" class="block text-sm font-medium text-gray-700 mb-1">Monto (S/) <span class="text-red-500">*</span></label>
-                <input type="number" step="0.01" id="gas_monto" name="gas_monto" required min="0.01" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent" placeholder="0.00">
+                <input type="number" step="0.01" id="gas_monto" name="gas_monto" value="{{ old('gas_monto') }}" required min="0.01" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent" placeholder="0.00">
             </div>
 
             <div>
-                <label for="gas_fecha" class="block text-sm font-medium text-gray-700 mb-1">Fecha <span class="text-red-500">*</span></label>
-                <input type="date" id="gas_fecha" name="gas_fecha" value="{{ date('Y-m-d') }}" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
+                <label for="fkmetodo" class="block text-sm font-medium text-gray-700 mb-1">Método de pago <span class="text-red-500">*</span></label>
+                <select id="fkmetodo" name="fkmetodo" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
+                    <option value="">Seleccionar método...</option>
+                    @foreach($metodos as $metodo)
+                        <option value="{{ $metodo->id_metod }}" @selected(old('fkmetodo') == $metodo->id_metod)>{{ $metodo->metod_nombre }}</option>
+                    @endforeach
+                </select>
             </div>
 
             <div>
                 <label for="gas_observacion" class="block text-sm font-medium text-gray-700 mb-1">Observación</label>
-                <textarea id="gas_observacion" name="gas_observacion" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent"></textarea>
+                <textarea id="gas_observacion" name="gas_observacion" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">{{ old('gas_observacion') }}</textarea>
             </div>
 
             <div class="flex gap-3 pt-4">
@@ -177,7 +195,7 @@ function editGasto(id) {
       .then(r=>r.json()).then(g=>{
         const form=document.getElementById('gastoForm'); form.action=`/gastos/${id}`;
         let method=form.querySelector('[name="_method"]'); if(!method){method=document.createElement('input');method.type='hidden';method.name='_method';form.appendChild(method)} method.value='PUT';
-        ['gas_concepto','fkcategoria','gas_monto','gas_fecha','gas_observacion'].forEach(k=>{const el=document.getElementById(k);if(el)el.value=g[k]??''});
+        ['gas_concepto','fkcategoria','gas_monto','fkmetodo','gas_observacion'].forEach(k=>{const el=document.getElementById(k);if(el)el.value=g[k]??''});
         Alpine.$data(document.getElementById('gastosRoot')).showRegistrarModal=true;
       });
 }

@@ -14,11 +14,14 @@ class Sidebar extends Component
 
     public string $currentRoute;
 
+    public array $initiallyExpandedMenus;
+
     public function __construct()
     {
         $this->menuItems = $this->getMenuConfig();
         $this->userRole = $this->getUserRoleInfo();
         $this->currentRoute = request()->route()->getName() ?? '';
+        $this->initiallyExpandedMenus = $this->getInitiallyExpandedMenus();
     }
 
     /**
@@ -72,44 +75,44 @@ class Sidebar extends Component
                 'label' => 'Ventas',
                 'icon' => 'fa-cart-plus',
                 'route' => 'ventas',
-                'roles' => ['Administrador', 'Local'],
+                'roles' => ['Administrador', 'Local', 'Redes'],
                 'submenu' => [
                     [
                         'id' => 'ventas-generadas',
                         'label' => 'Ventas Generadas',
                         'icon' => 'fa-money-bill',
                         'route' => 'ventas.index',
-                        'roles' => ['Administrador', 'Local'],
-                    ],
-                    [
-                        'id' => 'ventas-reservados',
-                        'label' => 'Listado de Reservados',
-                        'icon' => 'fa-clock',
-                        'route' => 'ventas.reservados',
-                        'roles' => ['Administrador', 'Local'],
+                        'roles' => ['Administrador', 'Local', 'Redes'],
                     ],
                 ],
             ],
             [
-                'id' => 'pagos',
-                'label' => 'Pagos',
+                'id' => 'cobranza',
+                'label' => 'Cobranza',
                 'icon' => 'fa-money-bill',
-                'route' => 'pagos',
-                'roles' => ['Administrador', 'Local'],
+                'route' => 'cobranza',
+                'roles' => ['Administrador', 'Local', 'Redes'],
                 'submenu' => [
                     [
-                        'id' => 'pagos-completos',
-                        'label' => 'Pagos Completos',
-                        'icon' => 'fa-money-bill-wave',
-                        'route' => 'pagos.completos',
-                        'roles' => ['Administrador', 'Local'],
+                        'id' => 'cobranza-pendientes',
+                        'label' => 'Saldos pendientes',
+                        'icon' => 'fa-hand-holding-dollar',
+                        'route' => 'cobranza.index',
+                        'roles' => ['Administrador', 'Local', 'Redes'],
                     ],
                     [
-                        'id' => 'pagos-incompletos',
-                        'label' => 'Pagos Incompletos',
-                        'icon' => 'fa-money-bill-1',
-                        'route' => 'pagos.incompletos',
-                        'roles' => ['Administrador', 'Local'],
+                        'id' => 'cobranza-vencidas',
+                        'label' => 'Cuotas vencidas',
+                        'icon' => 'fa-triangle-exclamation',
+                        'route' => 'cobranza.vencidas',
+                        'roles' => ['Administrador', 'Local', 'Redes'],
+                    ],
+                    [
+                        'id' => 'cobranza-historial',
+                        'label' => 'Historial de abonos',
+                        'icon' => 'fa-clock-rotate-left',
+                        'route' => 'cobranza.historial',
+                        'roles' => ['Administrador', 'Local', 'Redes'],
                     ],
                 ],
             ],
@@ -125,49 +128,57 @@ class Sidebar extends Component
                 'label' => 'Comisiones',
                 'icon' => 'fa-percent',
                 'route' => 'comisiones',
-                'roles' => ['Administrador', 'Local'],
+                'roles' => ['Administrador'],
+            ],
+            [
+                'id' => 'mis-comisiones',
+                'label' => 'Mis Comisiones',
+                'icon' => 'fa-percent',
+                'route' => 'comisiones.mis-comisiones',
+                'dynamic_route' => fn () => route('comisiones.mis-comisiones'),
+                'roles' => ['Local', 'Redes'],
             ],
             [
                 'id' => 'caja',
                 'label' => 'Caja',
                 'icon' => 'fa-cash-register',
                 'route' => 'caja',
-                'roles' => ['Administrador', 'Local'],
+                'roles' => ['Administrador', 'Local', 'Redes'],
             ],
             [
                 'id' => 'reportes',
                 'label' => 'Reportes',
                 'icon' => 'fa-file-lines',
                 'route' => 'reportes',
-                'roles' => ['Administrador', 'Local'],
+                'roles' => ['Administrador'],
                 'submenu' => [
                     [
                         'id' => 'reportes-principal',
                         'label' => 'Todos los Reportes',
                         'icon' => 'fa-th-large',
                         'route' => 'reportes.index',
-                        'roles' => ['Administrador', 'Local'],
+                        'roles' => ['Administrador'],
                     ],
                     [
                         'id' => 'reportes-ventas',
                         'label' => 'Ventas',
                         'icon' => 'fa-shopping-cart',
                         'route' => 'reportes.ventas',
-                        'roles' => ['Administrador', 'Local'],
+                        'roles' => ['Administrador'],
                     ],
                     [
                         'id' => 'reportes-membresias',
                         'label' => 'Membresías',
                         'icon' => 'fa-id-card',
                         'route' => 'reportes.membresias',
-                        'roles' => ['Administrador', 'Local'],
+                        'roles' => ['Administrador'],
                     ],
                     [
                         'id' => 'reportes-productos',
                         'label' => 'Productos',
                         'icon' => 'fa-box',
                         'route' => 'reportes.productos',
-                        'roles' => ['Administrador', 'Local'],
+                        'roles' => ['Administrador'],
                     ],
                     [
                         'id' => 'reportes-comisiones',
@@ -181,7 +192,7 @@ class Sidebar extends Component
                         'label' => 'Gastos',
                         'icon' => 'fa-receipt',
                         'route' => 'reportes.gastos',
-                        'roles' => ['Administrador', 'Local'],
+                        'roles' => ['Administrador'],
                     ],
                     [
                         'id' => 'reportes-caja',
@@ -195,7 +206,7 @@ class Sidebar extends Component
                         'label' => 'Vencimientos',
                         'icon' => 'fa-calendar-times',
                         'route' => 'reportes.vencimientos',
-                        'roles' => ['Administrador', 'Local'],
+                        'roles' => ['Administrador'],
                     ],
                 ],
             ],
@@ -228,6 +239,19 @@ class Sidebar extends Component
                 'roles' => ['Administrador'],
             ],
         ];
+    }
+
+    private function getInitiallyExpandedMenus(): array
+    {
+        foreach ($this->menuItems as $item) {
+            foreach ($item['submenu'] ?? [] as $subitem) {
+                if ($subitem['route'] === $this->currentRoute) {
+                    return [$item['route'] => true];
+                }
+            }
+        }
+
+        return [];
     }
 
     private function getUserRoleInfo(): array

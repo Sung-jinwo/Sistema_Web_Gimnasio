@@ -21,9 +21,7 @@ class CommissionServiceTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
-        $this->commissionService = new CommissionService(
-            app(\App\Services\PenaltyService::class)
-        );
+        $this->commissionService = app(CommissionService::class);
     }
 
     public function test_calculates_commission_for_product_sale(): void
@@ -32,6 +30,7 @@ class CommissionServiceTest extends TestCase
         $producto = Producto::factory()->create([
             'fksede' => $sede->id_sede,
             'prod_precio' => 100.00,
+            'comision' => 10.00,
         ]);
         $venta = Venta::factory()->create([
             'tipo_venta' => 'producto',
@@ -64,6 +63,7 @@ class CommissionServiceTest extends TestCase
         $venta = Venta::factory()->create([
             'tipo_venta' => 'membresia',
             'fkalum' => $alumno->id_alumno,
+            'fkmem' => $membresia->id_mem,
             'venta_total' => $membresia->mem_precio,
         ]);
 
@@ -74,30 +74,118 @@ class CommissionServiceTest extends TestCase
 
     public function test_saves_commission_correctly(): void
     {
-        $venta = Venta::factory()->create([
+        $impaga = Venta::factory()->create([
             'tipo_venta' => 'producto',
             'venta_total' => 100.00,
+            'monto_pagado' => 40.00,
+            'saldo' => 60.00,
         ]);
 
-        $comision = $this->commissionService->guardarComision(
-            $venta->id_venta,
+        $enEspera = $this->commissionService->guardarComision(
+            $impaga->id_venta,
             1,
             10.00,
             null
         );
 
+        $this->assertSame('esperando_pago', $enEspera->estado);
+        $this->assertNull($enEspera->fkcaja);
         $this->assertDatabaseHas('comisiones', [
-            'fkventa' => $venta->id_venta,
+            'fkventa' => $impaga->id_venta,
             'fkuser' => 1,
             'comision_base' => 10.00,
             'comision_final' => 10.00,
-            'estado' => 'pendiente',
+            'estado' => 'esperando_pago',
+        ]);
+
+        $caja = \App\Models\Caja::create([
+            'fksede' => $impaga->fksede, 'fkuser' => $impaga->fkusers,
+            'fecha_apertura' => now(), 'monto_inicial' => 0, 'estado' => 'abierta',
+        ]);
+        $pagada = Venta::factory()->create([
+            'tipo_venta' => 'producto',
+            'venta_total' => 100.00,
+            'monto_pagado' => 100.00,
+            'saldo' => 0,
+            'fkcaja' => $caja->id_caja,
+        ]);
+
+        $habilitada = $this->commissionService->guardarComision($pagada->id_venta, 1, 10.00, null);
+
+        $this->assertSame('pendiente_revision', $habilitada->estado);
+        $this->assertEquals($caja->id_caja, $habilitada->fkcaja);
+        $this->assertNotNull($habilitada->fecha_habilitacion);
+    }
+
+    public function test_registers_payment_only_for_aprobada_with_metodo(): void
+    {
+        $admin = \App\Models\User::factory()->create();
+        $this->actingAs($admin);
+        $metodo = \App\Models\MetodoPago::factory()->create();
+        $venta = Venta::factory()->create([
+            'saldo' => 0,
+            'estado_pago' => 'pagado',
+            'fecha_acordada' => now()->subDays(20),
+            'pagada_at' => now(),
+        ]);
+        $comision = \App\Models\Comision::create([
+            'fkventa' => $venta->id_venta,
+            'fkuser' => 1,
+            'comision_base' => 100.00,
+            'penalizacion' => 10.00,
+            'comision_final' => 90.00,
+            'fecha_acordada_pago' => now()->subDays(20),
+            'fecha_pago_real' => null,
+            'tipo' => 'venta',
+            'estado' => 'aprobada',
+        ]);
+
+        $comisionActualizada = $this->commissionService->registrarPagoComision($comision->id_comision, [
+            'fkmetodo' => $metodo->id_metod,
+            'referencia' => 'OP-001',
+        ]);
+
+        $this->assertEquals('liquidada', $comisionActualizada->estado);
+        $this->assertEquals(now()->format('Y-m-d'), $comisionActualizada->fecha_pago_real);
+        $this->assertEquals(10.00, $comisionActualizada->penalizacion);
+        $this->assertEquals(90.00, $comisionActualizada->comision_final);
+        $this->assertDatabaseHas('liquidaciones_comision', [
+            'fkuser' => 1,
+            'total' => 90.00,
+            'fkmetodo' => $metodo->id_metod,
+            'referencia' => 'OP-001',
         ]);
     }
 
-    public function test_registers_payment_and_applies_penalty(): void
+    public function test_rejects_liquidation_of_non_aprobada(): void
     {
-        $venta = Venta::factory()->create();
+        $admin = \App\Models\User::factory()->create();
+        $this->actingAs($admin);
+        $comision = \App\Models\Comision::create([
+            'fkventa' => null,
+            'fkuser' => 1,
+            'comision_base' => 50.00,
+            'penalizacion' => 0,
+            'comision_final' => 50.00,
+            'tipo' => 'venta',
+            'estado' => 'pendiente_revision',
+        ]);
+
+        $this->expectException(\Illuminate\Validation\ValidationException::class);
+
+        $this->commissionService->registrarPagoComision($comision->id_comision, [
+            'fkmetodo' => \App\Models\MetodoPago::factory()->create()->id_metod,
+        ]);
+    }
+
+    public function test_penalty_freezes_after_aprobacion(): void
+    {
+        $venta = Venta::factory()->create([
+            'saldo' => 0,
+            'estado_pago' => 'pagado',
+            'fecha_acordada' => now()->subDays(20),
+            'pagada_at' => now(),
+        ]);
         $comision = \App\Models\Comision::create([
             'fkventa' => $venta->id_venta,
             'fkuser' => 1,
@@ -105,17 +193,22 @@ class CommissionServiceTest extends TestCase
             'penalizacion' => 0,
             'comision_final' => 100.00,
             'fecha_acordada_pago' => now()->subDays(20),
-            'fecha_pago_real' => null,
             'tipo' => 'venta',
-            'estado' => 'pendiente',
+            'estado' => 'esperando_pago',
         ]);
 
-        $comisionActualizada = $this->commissionService->registrarPagoComision($comision->id_comision);
+        $this->commissionService->actualizarPenalizacionVenta($venta);
+        $this->assertGreaterThan(0, $comision->fresh()->penalizacion);
 
-        $this->assertEquals('liquidada', $comisionActualizada->estado);
-        $this->assertEquals(now()->format('Y-m-d'), $comisionActualizada->fecha_pago_real);
-        $this->assertGreaterThan(0, $comisionActualizada->penalizacion);
-        $this->assertLessThan(100.00, $comisionActualizada->comision_final);
+        $congelada = $comision->fresh()->penalizacion;
+        $comision->update(['estado' => 'pendiente_revision', 'fecha_habilitacion' => now()]);
+        $admin = \App\Models\User::factory()->create();
+        $this->commissionService->aprobarComision($comision->id_comision, $admin->id);
+
+        $venta->update(['fecha_acordada' => now()->subDays(60)]);
+        $this->commissionService->actualizarPenalizacionVenta($venta->fresh());
+
+        $this->assertEquals($congelada, $comision->fresh()->penalizacion);
     }
 
     public function test_gets_commissions_by_cash_register(): void
@@ -132,7 +225,7 @@ class CommissionServiceTest extends TestCase
             'penalizacion' => 0,
             'comision_final' => 10.00,
             'tipo' => 'venta',
-            'estado' => 'pendiente',
+            'estado' => 'pendiente_revision',
         ]);
 
         \App\Models\Comision::create([
@@ -143,7 +236,7 @@ class CommissionServiceTest extends TestCase
             'penalizacion' => 5.00,
             'comision_final' => 15.00,
             'tipo' => 'venta',
-            'estado' => 'pendiente',
+            'estado' => 'pendiente_revision',
         ]);
 
         $resultado = $this->commissionService->obtenerComisionesPorCaja($caja->id_caja);

@@ -14,4 +14,8 @@ class MetodoPago extends Model
     protected $primaryKey = 'id_metod';
 
     protected $guarded = [];
+
+    protected $casts = [
+        'es_efectivo' => 'boolean',
+    ];
 }

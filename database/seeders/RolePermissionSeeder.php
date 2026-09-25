@@ -18,10 +18,13 @@ class RolePermissionSeeder extends Seeder
             'alumnos.crear',
             'alumnos.editar',
             'alumnos.eliminar',
+            'alumnos.reportar',
 
             'membresias.ver',
             'membresias.crear',
             'membresias.editar',
+            'membresias.congelar',
+            'membresias.ajustar_vigencia',
 
             'productos.ver',
             'productos.crear',
@@ -32,6 +35,8 @@ class RolePermissionSeeder extends Seeder
 
             'pagos.ver',
             'pagos.crear',
+            'cobranza.ver',
+            'cobranza.abonar',
 
             'gastos.ver',
             'gastos.crear',
@@ -42,6 +47,8 @@ class RolePermissionSeeder extends Seeder
             'caja.cerrar',
 
             'comisiones.ver',
+            'comisiones.aprobar',
+            'comisiones.liquidar',
 
             'reportes.ver',
 
@@ -73,15 +80,15 @@ class RolePermissionSeeder extends Seeder
 
         $local = Role::firstOrCreate(['name' => 'Local', 'guard_name' => 'web']);
         $local->syncPermissions([
-            'alumnos.ver', 'alumnos.crear', 'alumnos.editar',
-            'membresias.ver', 'membresias.crear', 'membresias.editar',
-            'productos.ver', 'productos.crear', 'productos.editar',
+            'alumnos.ver', 'alumnos.crear', 'alumnos.editar', 'alumnos.reportar',
+            'membresias.ver',
+            'productos.ver',
             'ventas.ver', 'ventas.crear',
             'pagos.ver', 'pagos.crear',
+            'cobranza.ver', 'cobranza.abonar',
             'gastos.ver', 'gastos.crear',
             'caja.ver', 'caja.abrir', 'caja.cerrar',
             'comisiones.ver',
-            'reportes.ver',
             'seguimiento.ver',
             'asistencias.ver', 'asistencias.crear',
             'notificaciones.ver',
@@ -89,8 +96,12 @@ class RolePermissionSeeder extends Seeder
 
         $redes = Role::firstOrCreate(['name' => 'Redes', 'guard_name' => 'web']);
         $redes->syncPermissions([
-            'alumnos.ver', 'alumnos.crear', 'alumnos.editar',
-            'membresias.ver', 'membresias.crear', 'membresias.editar',
+            'alumnos.ver', 'alumnos.crear', 'alumnos.editar', 'alumnos.reportar',
+            'membresias.ver',
+            'ventas.ver', 'ventas.crear',
+            'cobranza.ver', 'cobranza.abonar',
+            'caja.ver', 'caja.abrir', 'caja.cerrar',
+            'comisiones.ver',
             'seguimiento.ver',
             'asistencias.ver', 'asistencias.crear',
             'notificaciones.ver',

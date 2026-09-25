@@ -8,9 +8,11 @@
         <a href="{{ route('categorias.index') }}" class="inline-flex items-center px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition">
             <i class="fas fa-tags mr-2"></i> Categorías
         </a>
-        <button @click="nuevo" class="inline-flex items-center px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition">
-            <i class="fas fa-plus mr-2"></i> Nuevo producto
-        </button>
+        @can('create', App\Models\Producto::class)
+            <button @click="nuevo" class="inline-flex items-center px-4 py-2 bg-pink-600 text-white rounded-lg hover:bg-pink-700 transition">
+                <i class="fas fa-plus mr-2"></i> Nuevo producto
+            </button>
+        @endcan
     </div>
 
     <form method="GET" action="{{ route('productos.index') }}" class="bg-white rounded-lg shadow-sm p-4">
@@ -38,17 +40,20 @@
 
     <div class="bg-white rounded-lg shadow-sm overflow-hidden">
         <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
+            <table data-card="compacta" class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                     <tr>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Código</th>
-                        <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Precio</th>
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">Stock</th>
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">Mínimo</th>
+                        <th data-card-oculto class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Código</th>
+                        <th data-card-prioritario class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Nombre</th>
+                        <th data-card-prioritario class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Precio</th>
+                        <th data-card-oculto class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">Comisión</th>
+                        <th data-card-prioritario class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">Stock</th>
+                        <th data-card-oculto class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">Mínimo</th>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">Categoría</th>
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">Sede</th>
-                        <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                        <th data-card-oculto class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">Sede</th>
+                        @can('create', App\Models\Producto::class)
+                            <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
+                        @endcan
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
@@ -57,6 +62,7 @@
                         <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">{{ $producto->prod_codigo ?: 'Sin código' }}</td>
                         <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{{ $producto->prod_nombre }}</td>
                         <td class="px-4 py-3 whitespace-nowrap text-center text-sm font-bold text-pink-600">S/ {{ number_format($producto->prod_precio, 2) }}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-center text-sm text-gray-600 hidden md:table-cell">S/ {{ number_format($producto->comision, 2) }}</td>
                         <td class="px-4 py-3 whitespace-nowrap text-center text-sm hidden md:table-cell">
                             <span class="{{ $producto->prod_cantidad <= $producto->prod_stock_minimo ? 'text-red-600 font-bold' : 'text-gray-900' }}">
                                 {{ $producto->prod_cantidad }}
@@ -65,24 +71,26 @@
                         <td class="px-4 py-3 whitespace-nowrap text-center text-sm text-gray-500 hidden md:table-cell">{{ $producto->prod_stock_minimo }}</td>
                         <td class="px-4 py-3 whitespace-nowrap text-center text-sm text-gray-500 hidden lg:table-cell">{{ $producto->categoria->cat_nombre ?? 'Sin categoría' }}</td>
                         <td class="px-4 py-3 whitespace-nowrap text-center text-sm text-gray-500 hidden lg:table-cell">{{ $producto->sede->sede_nombre ?? '-' }}</td>
+                        @if(auth()->user()->hasRole('Administrador'))
                         <td class="px-4 py-3 whitespace-nowrap text-center">
                             <div class="flex justify-center gap-2">
-                                <button @click="editar(@json($producto))" class="text-blue-600 hover:text-blue-900" title="Editar">
-                                    <i class="fas fa-edit"></i>
+                                <button @click="editar(@json($producto))" class="btn-accion text-green-600 hover:text-green-900" title="Editar">
+                                    <i class="fas fa-pen-to-square"></i>
                                 </button>
                                 <form method="POST" action="{{ route('productos.destroy', $producto->id_productos) }}" class="inline">
                                     @csrf
                                     @method('DELETE')
-                                    <button type="submit" class="{{ $producto->prod_estado ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900' }}" title="{{ $producto->prod_estado ? 'Desactivar' : 'Activar' }}">
+                                    <button type="submit" class="btn-accion {{ $producto->prod_estado ? 'text-red-600 hover:text-red-900' : 'text-green-600 hover:text-green-900' }}" title="{{ $producto->prod_estado ? 'Desactivar' : 'Activar' }}">
                                         <i class="fas {{ $producto->prod_estado ? 'fa-toggle-on' : 'fa-toggle-off' }}"></i>
                                     </button>
                                 </form>
                             </div>
                         </td>
+                        @endif
                     </tr>
                     @empty
                     <tr>
-                        <td colspan="8" class="px-4 py-8 text-center text-gray-500">No se encontraron productos.</td>
+                        <td colspan="{{ auth()->user()->hasRole('Administrador') ? 9 : 8 }}" class="px-4 py-8 text-center text-gray-500">No se encontraron productos.</td>
                     </tr>
                     @endforelse
                 </tbody>
@@ -95,6 +103,7 @@
         @endif
     </div>
 
+    @can('create', App\Models\Producto::class)
     <x-modal-form show="modal" title="Producto" subtitle="Complete los datos del inventario" size="lg">
         <form :action="url" method="POST" class="space-y-4">
             @csrf
@@ -112,6 +121,10 @@
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Precio <span class="text-red-500">*</span></label>
                     <input x-model="form.prod_precio" name="prod_precio" type="number" min=".01" step=".01" required class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Comisión fija (S/)</label>
+                    <input x-model="form.comision" name="comision" type="number" min="0" step=".01" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-transparent">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Stock <span class="text-red-500">*</span></label>
@@ -153,6 +166,7 @@
             </div>
         </form>
     </x-modal-form>
+    @endcan
 </div>
 @endsection
 
@@ -167,6 +181,7 @@ function productoCrud() {
         nuevo() {
             this.form = {
                 prod_stock_minimo: 5,
+                comision: 0,
                 fksede: '{{ auth()->user()->fksede }}'
             };
             this.editando = false;

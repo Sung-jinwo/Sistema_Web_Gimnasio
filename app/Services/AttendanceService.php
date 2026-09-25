@@ -5,16 +5,25 @@ namespace App\Services;
 use App\Models\Alumno;
 use App\Models\Asistencia;
 use App\Models\MembresiaAlumno;
+use App\Models\MembresiaCongelamiento;
 use App\Models\Sede;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
 
 class AttendanceService
 {
-    public function buscarAlumno(string $codigoODocumento): ?Alumno
+    public function buscarAlumno(string $codigoODocumento, ?string $tipoIngreso = null): ?Alumno
     {
-        return Alumno::where('alum_codigo', $codigoODocumento)
-            ->orWhere('alum_numDoc', $codigoODocumento)
+        if ($tipoIngreso === 'dni') {
+            return Alumno::where('alum_numDoc', $codigoODocumento)->first();
+        }
+
+        if ($tipoIngreso === 'codigo') {
+            return Alumno::where('alum_codigo', $codigoODocumento)->first();
+        }
+
+        return Alumno::where('alum_numDoc', $codigoODocumento)
+            ->orWhere('alum_codigo', $codigoODocumento)
             ->first();
     }
 
@@ -29,31 +38,28 @@ class AttendanceService
 
         $membresiaActiva = MembresiaAlumno::where('fkalumno', $alumno->id_alumno)
             ->where('estado', 'activa')
+            ->whereDate('fecha_inicio', '<=', $hoy)
             ->where('fecha_fin', '>=', $hoy)
             ->exists();
 
         return $membresiaActiva;
     }
 
-    public function validarDuplicadoHoy(Alumno $alumno, int $sedeId): bool
+    /**
+     * Congelamiento activo que bloquea el ingreso, con su fecha de fin.
+     */
+    public function congelamientoBloqueante(Alumno $alumno): ?MembresiaCongelamiento
     {
-        $hoy = Carbon::now()->format('Y-m-d');
-
-        $existeHoy = Asistencia::where('fkalum', $alumno->id_alumno)
-            ->where('fksede', $sedeId)
-            ->whereDate('visi_fecha', $hoy)
-            ->exists();
-
-        return $existeHoy;
+        return app(CongelamientoService::class)->congelamientoActivoDe($alumno);
     }
 
-    public function registrarAsistencia(Alumno $alumno, int $sedeId, string $tipoIngreso = 'codigo'): Asistencia
+    public function registrarAsistencia(Alumno $alumno, int $sedeId, string $tipoIngreso = 'codigo', ?int $usuarioId = null): Asistencia
     {
-        return DB::transaction(function () use ($alumno, $sedeId, $tipoIngreso) {
+        return DB::transaction(function () use ($alumno, $sedeId, $tipoIngreso, $usuarioId) {
             $asistencia = Asistencia::create([
                 'fkalum' => $alumno->id_alumno,
                 'fksede' => $sedeId,
-                'fkuser' => null,
+                'fkuser' => $usuarioId,
                 'visi_fecha' => now(),
                 'tipo_ingreso' => $tipoIngreso,
             ]);
@@ -90,15 +96,16 @@ class AttendanceService
             ];
         }
 
-        if ($this->validarDuplicadoHoy($alumno, $sedeId)) {
+        if ($congelado = $this->congelamientoBloqueante($alumno)) {
             return [
                 'success' => false,
-                'message' => 'El alumno ya registró asistencia hoy',
-                'tipo' => 'warning',
+                'message' => 'Su membresía está congelada hasta el '.$congelado->fecha_fin->format('d/m/Y').'. No se permite el ingreso durante el congelamiento.',
+                'tipo' => 'error',
             ];
         }
 
-        $asistencia = $this->registrarAsistencia($alumno, $sedeId, 'codigo');
+        $tipoIngreso = $alumno->alum_numDoc === $codigoODocumento ? 'dni' : 'codigo';
+        $asistencia = $this->registrarAsistencia($alumno, $sedeId, $tipoIngreso);
 
         return [
             'success' => true,

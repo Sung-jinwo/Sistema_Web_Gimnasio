@@ -6,7 +6,6 @@ use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Support\Facades\DB;
 
 class Alumno extends Model
 {
@@ -82,53 +81,51 @@ class Alumno extends Model
 
     public function getMembresiaVigenteAttribute()
     {
-        $fechaActual = now()->format('Y-m-d');
-
-        return $this->pagos()
-            ->where('tipo_membresia', 'principal')
-            // ->where('pag_fin', '>=', $fechaActual)
-
-            // ->orWhere('pag_fin', '<', $fechaActual)  // Incluye vencidas
-            ->orderBy('created_at', 'desc')
+        return $this->membresiasAlumno()
+            ->with(['membresia', 'venta'])
+            ->orderByDesc('fecha_inicio')
             ->first();
+    }
+
+    /**
+     * Indica si corresponde ofrecer una membresía: sin membresía activa
+     * o con vencimiento dentro de los próximos 5 días.
+     */
+    public function getRequiereMembresiaAttribute(): bool
+    {
+        $activa = $this->membresiaActiva;
+
+        if (! $activa) {
+            return true;
+        }
+
+        return Carbon::parse($activa->fecha_fin)->lte(now()->addDays(5)->endOfDay());
     }
 
     public function scopeConEstadoMembresia($query, $estado)
     {
         $hoy = now()->format('Y-m-d');
 
-        // Obtenemos los IDs de los últimos pagos principales
-        $ultimosPagosIds = Pago::select(DB::raw('MAX(id_pag) as id'))
-            ->where('tipo_membresia', 'principal')
-            ->groupBy('fkalum')
-            ->pluck('id');
-
         switch ($estado) {
             case 'vigente':
-                return $query->whereHas('pagos', function ($q) use ($hoy, $ultimosPagosIds) {
-                    $q->whereIn('id_pag', $ultimosPagosIds)
-                        ->where('pag_fin', '>=', $hoy);
+                return $query->whereHas('membresiasAlumno', function ($q) use ($hoy) {
+                    $q->where('estado', 'activa')->where('fecha_fin', '>=', $hoy);
                 });
 
             case 'por_caducar':
                 $fechaLimite = now()->addDays(5)->format('Y-m-d');
 
-                return $query->whereHas('pagos', function ($q) use ($hoy, $fechaLimite, $ultimosPagosIds) {
-                    $q->whereIn('id_pag', $ultimosPagosIds)
-                        ->where('pag_fin', '>=', $hoy)
-                        ->where('pag_fin', '<=', $fechaLimite);
+                return $query->whereHas('membresiasAlumno', function ($q) use ($hoy, $fechaLimite) {
+                    $q->where('estado', 'activa')->whereBetween('fecha_fin', [$hoy, $fechaLimite]);
                 });
 
             case 'vencido':
-                return $query->whereHas('pagos', function ($q) use ($hoy, $ultimosPagosIds) {
-                    $q->whereIn('id_pag', $ultimosPagosIds)
-                        ->where('pag_fin', '<', $hoy);
+                return $query->whereHas('membresiasAlumno', function ($q) use ($hoy) {
+                    $q->where('fecha_fin', '<', $hoy);
                 });
 
             case 'sin_membresia':
-                return $query->whereDoesnthave('pagos', function ($q) {
-                    $q->where('tipo_membresia', 'principal');
-                });
+                return $query->whereDoesntHave('membresiasAlumno');
         }
 
         return $query;
@@ -162,7 +159,7 @@ class Alumno extends Model
     {
         $pago = $this->membresiaVigente;
 
-        if (! $pago || ! $pago->pag_fin) {
+        if (! $pago || ! $pago->fecha_fin) {
             return [
                 'estado' => 'Sin membresía',
                 'clase' => 'status-inactive',
@@ -170,7 +167,7 @@ class Alumno extends Model
             ];
         }
 
-        $fechaFin = Carbon::parse($pago->pag_fin);
+        $fechaFin = Carbon::parse($pago->fecha_fin);
         $diferencia = now()->diffInDays($fechaFin, false);
 
         if ($diferencia < 0) {
@@ -210,15 +207,15 @@ class Alumno extends Model
     {
         $pagoPrincipal = $this->membresiaVigente;
 
-        return $pagoPrincipal ? $pagoPrincipal->estado_pago : 'Sin pago';
+        return $pagoPrincipal?->venta?->estado_pago ?? 'Sin pago';
 
     }
 
     public function getClasePagoAttribute(): string
     {
         $arr = [
-            'completo' => 'status-active',
-            'incompleto' => 'status-expiring',
+            'pagado' => 'status-active',
+            'parcial' => 'status-expiring',
         ];
 
         return $arr[$this->estadoPago] ?? 'status-inactive';

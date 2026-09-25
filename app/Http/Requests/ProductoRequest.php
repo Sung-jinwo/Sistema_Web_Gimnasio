@@ -17,6 +17,7 @@ class ProductoRequest extends FormRequest
             'prod_nombre' => 'required',
             'prod_codigo' => 'nullable|string|max:20|unique:productos,prod_codigo,'.$this->route('producto').',id_productos',
             'prod_precio' => 'required|numeric|min:0.01',
+            'comision' => 'nullable|numeric|min:0',
             'prod_cantidad' => 'required|integer|min:0',
             'prod_stock_minimo' => 'nullable|integer|min:0',
             'prod_marca' => 'nullable|string|max:50',

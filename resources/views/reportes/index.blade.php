@@ -1,12 +1,10 @@
 @extends('layouts.app')
 
+@section('page-title', 'Reportes')
+@section('page-subtitle', 'Selecciona un tipo de reporte para generar')
+
 @section('content')
 <div class="container mx-auto px-4 py-6">
-    <div class="mb-6">
-        <h1 class="text-2xl font-bold text-gray-900">Reportes</h1>
-        <p class="text-gray-600">Selecciona un tipo de reporte para generar</p>
-    </div>
-
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {{-- Reporte de Ventas --}}
         <a href="{{ route('reportes.ventas') }}" class="bg-white rounded-lg shadow-sm p-6 hover:shadow-md transition-shadow">

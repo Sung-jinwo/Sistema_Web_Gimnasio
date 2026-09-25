@@ -9,10 +9,12 @@ use App\Models\Sede;
 use App\Models\User;
 use App\Models\Venta;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\AbreCaja;
 use Tests\TestCase;
 
 class VentaTest extends TestCase
 {
+    use AbreCaja;
     use RefreshDatabase;
 
     protected function setUp(): void
@@ -31,6 +33,8 @@ class VentaTest extends TestCase
         $admin->assignRole('Administrador');
 
         $sede = Sede::factory()->create();
+        $admin->update(['fksede' => $sede->id_sede]);
+        $this->abrirCajaPara($admin, $sede->id_sede);
         $alumno = Alumno::factory()->create(['fksede' => $sede->id_sede]);
         $producto = Producto::factory()->create([
             'fksede' => $sede->id_sede,
@@ -63,6 +67,8 @@ class VentaTest extends TestCase
         $admin->assignRole('Administrador');
 
         $sede = Sede::factory()->create();
+        $admin->update(['fksede' => $sede->id_sede]);
+        $this->abrirCajaPara($admin, $sede->id_sede);
         $alumno = Alumno::factory()->create(['fksede' => $sede->id_sede]);
         $producto = Producto::factory()->create([
             'fksede' => $sede->id_sede,
@@ -94,6 +100,8 @@ class VentaTest extends TestCase
         $admin->assignRole('Administrador');
 
         $sede = Sede::factory()->create();
+        $admin->update(['fksede' => $sede->id_sede]);
+        $this->abrirCajaPara($admin, $sede->id_sede);
         $alumno = Alumno::factory()->create(['fksede' => $sede->id_sede]);
         $producto = Producto::factory()->create([
             'fksede' => $sede->id_sede,
@@ -126,6 +134,8 @@ class VentaTest extends TestCase
         $admin->assignRole('Administrador');
 
         $sede = Sede::factory()->create();
+        $admin->update(['fksede' => $sede->id_sede]);
+        $this->abrirCajaPara($admin, $sede->id_sede);
         $producto = Producto::factory()->create([
             'fksede' => $sede->id_sede,
             'prod_cantidad' => 10,
@@ -154,6 +164,8 @@ class VentaTest extends TestCase
         $admin->assignRole('Administrador');
 
         $sede = Sede::factory()->create();
+        $admin->update(['fksede' => $sede->id_sede]);
+        $this->abrirCajaPara($admin, $sede->id_sede);
         $alumno = Alumno::factory()->create(['fksede' => $sede->id_sede]);
         $producto = Producto::factory()->create([
             'fksede' => $sede->id_sede,
@@ -179,29 +191,30 @@ class VentaTest extends TestCase
         ]);
     }
 
-    public function test_redes_user_cannot_create_sales(): void
+    public function test_redes_user_can_create_sales_with_own_cash_register(): void
     {
         $sede = Sede::factory()->create();
         $redes = User::factory()->create(['fksede' => $sede->id_sede]);
         $redes->assignRole('Redes');
 
         $alumno = Alumno::factory()->create(['fksede' => $sede->id_sede]);
-        $producto = Producto::factory()->create([
-            'fksede' => $sede->id_sede,
-            'prod_cantidad' => 10,
+        $membresia = \App\Models\Membresia::factory()->create(['mem_precio' => 100, 'mem_duracion' => 30]);
+        $metodo = \App\Models\MetodoPago::factory()->create();
+        $this->abrirCajaPara($redes, $sede->id_sede);
+
+        $response = $this->actingAs($redes)->post('/ventas', [
+            'tipo_venta' => 'membresia',
+            'fkalum' => $alumno->id_alumno,
+            'fkmem' => $membresia->id_mem,
+            'fecha_inicio' => today()->format('Y-m-d'),
+            'cobros' => [['fkmetodo' => $metodo->id_metod, 'monto' => 100]],
         ]);
 
-        $data = [
-            'tipo_venta' => 'producto',
-            'fkalum' => $alumno->id_alumno,
-            'fkproducto' => $producto->id_productos,
-            'cantidad' => 1,
-            'fkmetodo' => 1,
-        ];
-
-        $response = $this->actingAs($redes)->post('/ventas', $data);
-
-        $response->assertStatus(403);
+        $response->assertRedirect('/ventas');
+        $this->assertDatabaseHas('ventas', [
+            'tipo_venta' => 'membresia',
+            'fkusers' => $redes->id,
+        ]);
     }
 
     public function test_can_view_sales_list(): void
@@ -215,6 +228,18 @@ class VentaTest extends TestCase
         $response = $this->actingAs($admin)->get('/ventas');
 
         $response->assertStatus(200);
+    }
+
+    public function test_columna_acciones_solo_visible_para_administrador(): void
+    {
+        $sede = Sede::factory()->create();
+        $admin = User::factory()->create(['fksede' => $sede->id_sede]);
+        $admin->assignRole('Administrador');
+        $local = User::factory()->create(['fksede' => $sede->id_sede]);
+        $local->assignRole('Local');
+
+        $this->actingAs($admin)->get('/ventas')->assertOk()->assertSee('Acciones', false);
+        $this->actingAs($local)->get('/ventas')->assertOk()->assertDontSee('Acciones', false);
     }
 
     public function test_can_filter_sales_by_type(): void
@@ -236,6 +261,7 @@ class VentaTest extends TestCase
         $admin = User::factory()->create();
         $admin->assignRole('Administrador');
         $alumno = Alumno::factory()->create(['fksede' => $admin->fksede]);
+        $this->abrirCajaPara($admin);
         $a = Producto::factory()->create(['fksede' => $admin->fksede, 'prod_cantidad' => 10, 'prod_precio' => 20]);
         $b = Producto::factory()->create(['fksede' => $admin->fksede, 'prod_cantidad' => 5, 'prod_precio' => 15]);
 

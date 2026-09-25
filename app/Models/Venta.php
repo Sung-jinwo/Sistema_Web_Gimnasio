@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
@@ -21,6 +20,9 @@ class Venta extends Model
     protected $casts = [
         'anulada_at' => 'datetime',
         'venta_fecha' => 'date',
+        'fecha_acordada' => 'date',
+        'pagada_at' => 'datetime',
+        'stock_liberado_at' => 'datetime',
     ];
 
     public function anuladaPor()
@@ -43,6 +45,11 @@ class Venta extends Model
         return $this->belongsTo(Sede::class, 'fksede', 'id_sede');
     }
 
+    public function caja()
+    {
+        return $this->belongsTo(Caja::class, 'fkcaja', 'id_caja');
+    }
+
     public function metodo()
     {
         return $this->belongsTo(MetodoPago::class, 'fkmetodo', 'id_metod');
@@ -58,52 +65,28 @@ class Venta extends Model
         return $this->belongsTo(Producto::class, 'fkproducto', 'id_productos');
     }
 
+    public function membresia()
+    {
+        return $this->belongsTo(Membresia::class, 'fkmem', 'id_mem');
+    }
+
     public function comisiones()
     {
         return $this->hasMany(Comision::class, 'fkventa', 'id_venta');
     }
 
-    public function getFechaReservaAttribute($value)
+    public function abonos()
     {
-        return Carbon::parse($this->venta_fecha)->format('d/m/Y');
+        return $this->hasMany(Abono::class, 'fkventa', 'id_venta');
     }
 
-    public function getReservaPorVencerAttribute()
+    public function cuotas()
     {
-        $fecha = Carbon::parse($this->venta_fecha);
-        $diasRestantes = now()->diffInDays($fecha, false);
-
-        return $diasRestantes >= 0 && $diasRestantes <= 5;
+        return $this->hasMany(Cuota::class, 'fkventa', 'id_venta');
     }
 
-    // Esta función dice si ya está vencida (hoy o antes)
-    public function getReservaVencidaAttribute()
+    public function membresiaAlumno()
     {
-        $fecha = Carbon::parse($this->venta_fecha);
-
-        return $fecha->lt(now()->startOfDay());
-    }
-
-    public function getMensajeReservaPorVencerAttribute()
-    {
-        if ($this->reserva_por_vencer) {
-            $dias = now()->diffInDays($this->venta_fecha);
-
-            return "La Venta Reservada de producto para {$this->alumno?->alum_nombre} vence en {$dias} día(s).";
-        }
-
-        return null;
-    }
-
-    // Mensaje para reservas vencidas
-    public function getMensajeReservaVencidaAttribute()
-    {
-        if ($this->reserva_vencida) {
-            $dias = now()->diffInDays($this->venta_fecha);
-
-            return "¡ATENCIÓN! Reserva para {$this->alumno?->alum_nombre} vencida hace {$dias} día(s).";
-        }
-
-        return null;
+        return $this->hasOne(MembresiaAlumno::class, 'fkventa', 'id_venta');
     }
 }

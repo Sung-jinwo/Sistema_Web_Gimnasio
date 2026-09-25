@@ -16,7 +16,7 @@ class MembresiaRequest extends FormRequest
         return [
             'mem_nombre' => 'required|string|max:100',
             'mem_precio' => 'required|numeric|min:0',
-            'comision' => 'nullable|numeric|min:0|max:100',
+            'comision' => 'nullable|numeric|min:0',
             'modalidad' => 'required|in:por_duracion,por_meses,por_fechas',
             'mem_duracion' => 'required_unless:modalidad,por_fechas|nullable|integer|min:1',
             'fecha_inicio_fija' => 'required_if:modalidad,por_fechas|nullable|date',
@@ -25,6 +25,7 @@ class MembresiaRequest extends FormRequest
             'mem_tipo' => 'required|in:Diaria,Semanal,Mensual,Trimestral,Semestral,Anual',
             'mem_beneficios' => 'nullable|string',
             'estado' => 'nullable|in:A,I',
+            'permite_congelamiento' => 'nullable|boolean',
         ];
     }
 
@@ -38,7 +39,6 @@ class MembresiaRequest extends FormRequest
             'mem_precio.min' => 'El precio no puede ser negativo.',
             'comision.numeric' => 'La comisión debe ser un número.',
             'comision.min' => 'La comisión no puede ser negativa.',
-            'comision.max' => 'La comisión no puede exceder 100%.',
             'modalidad.required' => 'La modalidad es requerida.',
             'modalidad.in' => 'La modalidad debe ser por_meses o por_fechas.',
             'mem_duracion.required_if' => 'La duración es requerida cuando la modalidad es por meses.',

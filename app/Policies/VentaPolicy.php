@@ -9,7 +9,7 @@ class VentaPolicy
 {
     public function viewAny(User $user): bool
     {
-        return $user->hasRole(['Administrador', 'Local']);
+        return $user->hasRole(['Administrador', 'Local', 'Redes']);
     }
 
     public function view(User $user, Venta $venta): bool
@@ -18,18 +18,26 @@ class VentaPolicy
             return true;
         }
 
+        if ($user->hasRole('Redes')) {
+            return (int) $venta->fkusers === (int) $user->id;
+        }
+
         return $user->fksede === $venta->fksede;
     }
 
     public function create(User $user): bool
     {
-        return $user->hasRole(['Administrador', 'Local']);
+        return $user->hasRole(['Administrador', 'Local', 'Redes']);
     }
 
     public function update(User $user, Venta $venta): bool
     {
         if ($user->hasRole('Administrador')) {
             return true;
+        }
+
+        if ($user->hasRole('Redes')) {
+            return (int) $venta->fkusers === (int) $user->id;
         }
 
         return $user->fksede === $venta->fksede && $user->hasRole('Local');

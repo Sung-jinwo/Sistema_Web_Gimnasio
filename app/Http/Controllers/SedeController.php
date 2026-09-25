@@ -53,7 +53,7 @@ class SedeController extends Controller
             return response()->json($sede);
         }
 
-        return view('sedes.edit', compact('sede'));
+        return redirect()->route('sedes.index');
     }
 
     public function update(SedeRequest $request, $id)

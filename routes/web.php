@@ -7,15 +7,17 @@ use App\Http\Controllers\AuditController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\CajaController;
 use App\Http\Controllers\CategoriaController;
+use App\Http\Controllers\CobranzaController;
 use App\Http\Controllers\ComisionController;
+use App\Http\Controllers\CongelamientoController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\GastoController;
 use App\Http\Controllers\MembresiaController;
 use App\Http\Controllers\NotificationController;
-use App\Http\Controllers\PagoController;
 use App\Http\Controllers\PasswordController;
 use App\Http\Controllers\ProductoController;
 use App\Http\Controllers\ReportController;
+use App\Http\Controllers\ReporteAlumnoController;
 use App\Http\Controllers\SedeController;
 use App\Http\Controllers\SeguimientoController;
 use App\Http\Controllers\UsuarioController;
@@ -32,6 +34,16 @@ Route::post('/login', [LoginController::class, 'login'])
 Route::post('/logout', [LoginController::class, 'logout'])
     ->name('logout')
     ->middleware('auth');
+
+// Un GET a /logout (URL directa, historial, doble clic con sesión expirada)
+// no debe reventar con 405: redirige al login. Nunca cierra sesión por GET.
+Route::get('/logout', function () {
+    if (auth()->check()) {
+        return redirect()->route('home.index');
+    }
+
+    return redirect()->route('login');
+})->name('logout.get');
 
 // Rutas de recuperación de contraseña (públicas)
 Route::get('/forgot-password', [PasswordController::class, 'create'])->name('password.request');
@@ -50,41 +62,72 @@ Route::middleware(['auth'])->group(function () {
         Route::resource('alumnos', AlumnoController::class);
     });
 
-    Route::middleware(['permission:asistencias.ver'])->group(function () {
-        Route::resource('asistencias', AsistenciaController::class);
+    Route::middleware(['permission:alumnos.reportar'])->group(function () {
+        Route::get('/alumnos-reporte-mensual', [ReporteAlumnoController::class, 'index'])->name('alumnos.reporte');
+        Route::get('/alumnos-reporte-mensual/exportar', [ReporteAlumnoController::class, 'exportar'])->name('alumnos.reporte.exportar');
     });
+
+    Route::get('/asistencias', [AsistenciaController::class, 'index'])
+        ->middleware('permission:asistencias.ver')->name('asistencias.index');
+    Route::post('/asistencias', [AsistenciaController::class, 'store'])
+        ->middleware('permission:asistencias.crear')->name('asistencias.store');
 
     Route::middleware(['permission:membresias.ver'])->group(function () {
-        Route::resource('membresias', MembresiaController::class);
-        Route::post('/alumnos/{alumno}/membresias/asignar', [MembresiaController::class, 'asignar'])->name('membresias.asignar');
+        Route::get('/membresias', [MembresiaController::class, 'index'])->name('membresias.index');
         Route::get('/alumnos/{alumno}/membresias/historial', [MembresiaController::class, 'historial'])->name('membresias.historial');
-        Route::post('/membresias-alumno/{membresiaAlumno}/renovar', [MembresiaController::class, 'renovar'])->name('membresias.renovar');
+    });
+    Route::post('/membresias', [MembresiaController::class, 'store'])->middleware('permission:membresias.crear')->name('membresias.store');
+    Route::get('/membresias/{membresia}/edit', [MembresiaController::class, 'edit'])->middleware('permission:membresias.editar')->name('membresias.edit');
+    Route::match(['put', 'patch'], '/membresias/{membresia}', [MembresiaController::class, 'update'])->middleware('permission:membresias.editar')->name('membresias.update');
+    Route::delete('/membresias/{membresia}', [MembresiaController::class, 'destroy'])->middleware('permission:membresias.editar')->name('membresias.destroy');
+
+    Route::middleware(['permission:membresias.congelar'])->group(function () {
+        Route::post('/membresias-alumno/{membresiaAlumno}/congelar', [CongelamientoController::class, 'programar'])->name('membresias.congelar');
+        Route::post('/congelamientos/{congelamiento}/finalizar', [CongelamientoController::class, 'finalizar'])->name('congelamientos.finalizar');
+        Route::post('/congelamientos/{congelamiento}/cancelar', [CongelamientoController::class, 'cancelar'])->name('congelamientos.cancelar');
+    });
+    Route::post('/membresias-alumno/{membresiaAlumno}/ajustar-vigencia', [CongelamientoController::class, 'ajustar'])
+        ->middleware('permission:membresias.ajustar_vigencia')->name('membresias.ajustar-vigencia');
+
+    Route::middleware(['permission:cobranza.ver'])->group(function () {
+        Route::get('/cobranza', [CobranzaController::class, 'index'])->name('cobranza.index');
+        Route::get('/cobranza/cuotas-vencidas', [CobranzaController::class, 'vencidas'])->name('cobranza.vencidas');
+        Route::get('/cobranza/historial', [CobranzaController::class, 'historial'])->name('cobranza.historial');
+        Route::post('/cobranza/ventas/{venta}/abonos', [CobranzaController::class, 'abonar'])
+            ->middleware('permission:cobranza.abonar')->name('cobranza.abonar');
     });
 
-    Route::middleware(['permission:pagos.ver'])->group(function () {
-        Route::resource('pagos', PagoController::class)->except(['create', 'show']);
-        Route::get('/pagos-completos', [PagoController::class, 'completos'])->name('pagos.completos');
-        Route::get('/pagos-incompletos', [PagoController::class, 'incompletos'])->name('pagos.incompletos');
-        Route::post('/pagos/{pago}/cuotas', [PagoController::class, 'registrarCuota'])->name('pagos.cuotas.registrar');
-        Route::post('/cuotas/{cuota}/abonar', [PagoController::class, 'abonarCuota'])->name('cuotas.abonar');
-        Route::get('/cuotas-vencidas', [PagoController::class, 'cuotasVencidas'])->name('pagos.cuotas.vencidas');
-    });
+    Route::redirect('/pagos', '/cobranza')->name('pagos.index');
+    Route::redirect('/pagos-completos', '/ventas?estado_pago=pagado')->name('pagos.completos');
+    Route::redirect('/pagos-incompletos', '/cobranza')->name('pagos.incompletos');
+    Route::redirect('/cuotas-vencidas', '/cobranza/cuotas-vencidas')->name('pagos.cuotas.vencidas');
 
     Route::middleware(['permission:productos.ver'])->group(function () {
-        Route::resource('productos', ProductoController::class);
+        Route::get('/productos', [ProductoController::class, 'index'])->name('productos.index');
+        Route::get('/productos/{producto}', [ProductoController::class, 'show'])->whereNumber('producto')->name('productos.show');
         Route::get('/categorias', [CategoriaController::class, 'index'])->name('categorias.index');
+    });
+    Route::middleware(['permission:productos.crear'])->group(function () {
+        Route::get('/productos/create', [ProductoController::class, 'create'])->name('productos.create');
+        Route::post('/productos', [ProductoController::class, 'store'])->name('productos.store');
         Route::post('/categorias', [CategoriaController::class, 'store'])->name('categorias.store');
+    });
+    Route::middleware(['permission:productos.editar'])->group(function () {
+        Route::get('/productos/{producto}/edit', [ProductoController::class, 'edit'])->whereNumber('producto')->name('productos.edit');
+        Route::match(['put', 'patch'], '/productos/{producto}', [ProductoController::class, 'update'])->whereNumber('producto')->name('productos.update');
+        Route::delete('/productos/{producto}', [ProductoController::class, 'destroy'])->whereNumber('producto')->name('productos.destroy');
         Route::put('/categorias/{categoria}', [CategoriaController::class, 'update'])->name('categorias.update');
         Route::post('/categorias/{categoria}/toggle', [CategoriaController::class, 'toggle'])->name('categorias.toggle');
     });
 
     Route::middleware(['permission:ventas.ver'])->group(function () {
-        Route::resource('ventas', VentaController::class)->except(['create', 'edit', 'show']);
-        Route::get('/ventas-reservados', [VentaController::class, 'reservados'])->name('ventas.reservados');
+        Route::resource('ventas', VentaController::class)->only(['index', 'store', 'destroy']);
         Route::get('/ventas/datos/rapida', [VentaController::class, 'datosVentaRapida'])->name('ventas.datos.rapida');
         Route::get('/ventas/datos/producto', [VentaController::class, 'datosVentaProducto'])->name('ventas.datos.producto');
         Route::get('/ventas/datos/membresia', [VentaController::class, 'datosVentaMembresia'])->name('ventas.datos.membresia');
         Route::get('/ventas/alumnos/buscar', [VentaController::class, 'buscarAlumnos'])->name('ventas.alumnos.buscar');
+        Route::get('/ventas/productos/buscar', [VentaController::class, 'buscarProductos'])->name('ventas.productos.buscar');
+        Route::get('/ventas/membresias/buscar', [VentaController::class, 'buscarMembresias'])->name('ventas.membresias.buscar');
         Route::post('/ventas/{venta}/anular', [VentaController::class, 'anular'])->name('ventas.anular');
     });
 
@@ -98,6 +141,15 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/comisiones', [ComisionController::class, 'index'])->name('comisiones.index');
         Route::get('/comisiones/mis-comisiones', [ComisionController::class, 'misComisiones'])->name('comisiones.mis-comisiones');
         Route::get('/comisiones/{comision}', [ComisionController::class, 'show'])->name('comisiones.show');
+    });
+
+    Route::middleware(['permission:comisiones.aprobar'])->group(function () {
+        Route::post('/comisiones/{comision}/aprobar', [ComisionController::class, 'aprobar'])->name('comisiones.aprobar');
+        Route::post('/comisiones/{comision}/observar', [ComisionController::class, 'observar'])->name('comisiones.observar');
+        Route::post('/comisiones/aprobar-seleccion', [ComisionController::class, 'aprobarSeleccion'])->name('comisiones.aprobar-seleccion');
+    });
+
+    Route::middleware(['permission:comisiones.liquidar'])->group(function () {
         Route::post('/comisiones/{comision}/liquidar', [ComisionController::class, 'liquidar'])->name('comisiones.liquidar');
         Route::post('/comisiones/liquidar-seleccion', [ComisionController::class, 'liquidarSeleccion'])->name('comisiones.liquidar-seleccion');
     });
@@ -106,6 +158,8 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/caja', [CajaController::class, 'index'])->name('caja.index');
         Route::post('/caja/apertura', [CajaController::class, 'apertura'])->name('caja.apertura');
         Route::post('/caja/cierre/{caja}', [CajaController::class, 'cierre'])->name('caja.cierre');
+        Route::post('/caja/{caja}/aprobar', [CajaController::class, 'aprobar'])->name('caja.aprobar');
+        Route::post('/caja/{caja}/observar', [CajaController::class, 'observar'])->name('caja.observar');
         Route::get('/caja/{caja}/pdf', [CajaController::class, 'pdf'])->name('caja.pdf');
         Route::post('/caja/{caja}/anular', [CajaController::class, 'anular'])->name('caja.anular');
     });
@@ -136,7 +190,7 @@ Route::middleware(['auth'])->group(function () {
     });
 
     Route::middleware(['permission:usuarios.ver'])->group(function () {
-        Route::resource('usuarios', UsuarioController::class);
+        Route::resource('usuarios', UsuarioController::class)->only(['index', 'store', 'edit', 'update', 'destroy']);
         Route::post('/usuarios/{usuario}/toggle', [UsuarioController::class, 'toggleEstado'])->name('usuarios.toggle');
     });
 

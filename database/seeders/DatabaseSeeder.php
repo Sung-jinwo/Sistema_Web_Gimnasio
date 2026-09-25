@@ -63,7 +63,10 @@ class DatabaseSeeder extends Seeder
 
         $metodos = ['Efectivo', 'Tarjeta', 'Transferencia', 'Yape/Plin'];
         foreach ($metodos as $metodo) {
-            MetodoPago::firstOrCreate(['metod_nombre' => $metodo]);
+            MetodoPago::firstOrCreate(
+                ['metod_nombre' => $metodo],
+                ['es_efectivo' => $metodo === 'Efectivo']
+            );
         }
 
         $categoriasProducto = ['Suplementos', 'Bebidas', 'Accesorios', 'Ropa', 'Equipamiento'];
@@ -112,7 +115,6 @@ class DatabaseSeeder extends Seeder
         );
         $recepcion->assignRole('Asistencia');
 
-
         $ventasUser = User::firstOrCreate(
             ['email' => 'ventas@gym.com'],
             [
@@ -125,7 +127,6 @@ class DatabaseSeeder extends Seeder
         );
         $ventasUser->assignRole('Redes');
 
-
         $empleado = User::firstOrCreate(
             ['email' => 'empleado@gym.com'],
             [
@@ -136,6 +137,7 @@ class DatabaseSeeder extends Seeder
                 'estado' => true,
             ]
         );
+        $empleado->assignRole('Local');
 
         $alumnosData = [
             ['alum_codigo' => 'ALU001', 'alum_nombre' => 'Juan Carlos', 'alum_apellido' => 'García López', 'fksexo' => 1, 'fecha_nac' => '1995-03-15', 'fksede' => $sede->id_sede, 'alum_documento' => 'DNI', 'alum_numDoc' => '12345678', 'alum_telefo' => '987654321', 'alum_correro' => 'juan.garcia@email.com', 'alum_direccion' => 'Av. Los Pinos 123', 'fkuser' => $admin->id],
@@ -630,7 +632,8 @@ class DatabaseSeeder extends Seeder
                     'comision_base' => 1.92,
                     'penalizacion' => 0,
                     'comision_final' => 1.92,
-                    'estado' => 'pendiente',
+                    'estado' => 'pendiente_revision',
+                    'fecha_habilitacion' => $hoy->copy()->subDays(1)->format('Y-m-d H:i:s'),
                     'fecha_acordada_pago' => $hoy->copy()->addDays(15)->format('Y-m-d'),
                 ],
                 [
@@ -643,7 +646,8 @@ class DatabaseSeeder extends Seeder
                     'comision_base' => 1.75,
                     'penalizacion' => 0,
                     'comision_final' => 1.75,
-                    'estado' => 'pendiente',
+                    'estado' => 'pendiente_revision',
+                    'fecha_habilitacion' => $hoy->copy()->subDays(1)->format('Y-m-d H:i:s'),
                     'fecha_acordada_pago' => $hoy->copy()->addDays(15)->format('Y-m-d'),
                 ],
                 [
@@ -665,5 +669,8 @@ class DatabaseSeeder extends Seeder
                 Comision::create($data);
             }
         }
+
+        $migracionCobranza = require database_path('migrations/2026_09_23_000001_consolidate_pagos_into_cobranza.php');
+        $migracionCobranza->up();
     }
 }

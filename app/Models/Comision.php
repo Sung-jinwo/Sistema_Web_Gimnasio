@@ -14,6 +14,39 @@ class Comision extends Model
 
     public $timestamps = true;
 
+    protected $casts = [
+        'fecha_aprobacion' => 'datetime',
+        'fecha_habilitacion' => 'datetime',
+    ];
+
+    public const ESTADO_ESPERANDO_PAGO = 'esperando_pago';
+
+    public const ESTADO_PENDIENTE_REVISION = 'pendiente_revision';
+
+    public const ESTADO_APROBADA = 'aprobada';
+
+    public const ESTADO_OBSERVADA = 'observada';
+
+    public const ESTADO_LIQUIDADA = 'liquidada';
+
+    public const ESTADO_ANULADA = 'anulada';
+
+    /**
+     * Estados en los que la penalización sigue recalculándose.
+     * Al habilitarse (último abono) el importe queda congelado.
+     */
+    public const ESTADOS_MUTABLES = [
+        self::ESTADO_ESPERANDO_PAGO,
+    ];
+
+    /**
+     * Estados que bloquean la aprobación final de la caja de revisión.
+     */
+    public const ESTADOS_BLOQUEAN_CIERRE = [
+        self::ESTADO_PENDIENTE_REVISION,
+        self::ESTADO_OBSERVADA,
+    ];
+
     protected static function booted(): void
     {
         static::creating(function (Comision $comision) {
@@ -36,9 +69,22 @@ class Comision extends Model
         return $this->belongsTo(Caja::class, 'fkcaja', 'id_caja');
     }
 
+    public function aprobadaPor()
+    {
+        return $this->belongsTo(User::class, 'aprobada_por', 'id');
+    }
+
     public function getEstadoFormatoAttribute(): string
     {
-        return $this->estado === 'liquidada' ? 'Liquidada' : 'Pendiente';
+        return match ($this->estado) {
+            self::ESTADO_ESPERANDO_PAGO => 'Esperando pago',
+            self::ESTADO_PENDIENTE_REVISION => 'Pendiente de revisión',
+            self::ESTADO_APROBADA => 'Aprobada',
+            self::ESTADO_OBSERVADA => 'Observada',
+            self::ESTADO_LIQUIDADA => 'Liquidada',
+            self::ESTADO_ANULADA => 'Anulada',
+            default => ucfirst($this->estado ?? ''),
+        };
     }
 
     public function getFechaAcordadaFormatoAttribute(): string
@@ -62,12 +108,17 @@ class Comision extends Model
 
     public function scopePendientes($query)
     {
-        return $query->where('estado', 'pendiente');
+        return $query->where('estado', self::ESTADO_PENDIENTE_REVISION);
     }
 
     public function scopeLiquidadas($query)
     {
-        return $query->where('estado', 'liquidada');
+        return $query->where('estado', self::ESTADO_LIQUIDADA);
+    }
+
+    public function scopeHabilitadas($query)
+    {
+        return $query->whereIn('estado', [self::ESTADO_PENDIENTE_REVISION, self::ESTADO_OBSERVADA]);
     }
 
     public function scopePorUsuario($query, int $usuarioId)
