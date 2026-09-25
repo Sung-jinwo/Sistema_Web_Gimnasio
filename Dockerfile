@@ -95,7 +95,7 @@ EXPOSE 8080
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD-SHELL curl -fsS "http://127.0.0.1:${PORT}/up" || exit 1
+    CMD curl -fsS "http://127.0.0.1:${PORT}/up" || exit 1
 
 # Comando de inicio
 CMD ["/entrypoint.sh"]
