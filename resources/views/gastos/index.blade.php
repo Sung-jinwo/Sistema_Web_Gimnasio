@@ -114,7 +114,8 @@
         @endif
     </div>
 
-    @can('create', App\Models\Gasto::class)
+    {{-- El form #gastoForm se comparte entre crear y editar: se renderiza si puede crear O es Admin/Local (puede editar). --}}
+    @if(auth()->user()->can('create', App\Models\Gasto::class) || auth()->user()->hasRole(['Administrador', 'Local']))
     <x-modal-form show="showRegistrarModal" title="Registrar Gasto" subtitle="Complete los datos del gasto" icon='<i class="fas fa-receipt text-white"></i>' size="md" headerColor="red">
         <form id="gastoForm" method="POST" action="{{ route('gastos.store') }}" class="space-y-4">
             @csrf
@@ -164,7 +165,7 @@
             </div>
         </form>
     </x-modal-form>
-    @endcan
+    @endif
 
     @can('aprobar', new App\Models\Gasto)
     <x-modal-form show="showRechazarModal" title="Rechazar Gasto" subtitle="Ingrese el motivo del rechazo" icon='<i class="fas fa-times-circle text-white"></i>' size="md" headerColor="red">

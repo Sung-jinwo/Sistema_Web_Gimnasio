@@ -91,6 +91,10 @@
             main table.responsive-cards input, main table.responsive-cards select, main table.responsive-cards textarea { max-width: 100%; min-width: 0; }
             /* Tablas anidadas: scroll horizontal interno, no tarjeta-dentro-de-tarjeta. */
             main table.responsive-cards > tbody > tr > td > table { display: block; overflow-x: auto; min-width: 0; flex: 1 1 auto; }
+            /* Modales en móvil: sheet casi-completa anclada abajo, sin márgenes fantasma. */
+            div:has(> .sigg-modal-panel) { padding: 0 !important; align-items: flex-end !important; }
+            .sigg-modal-panel { width: 100% !important; max-width: none !important; height: 92dvh; max-height: 92dvh !important; border-radius: 1rem 1rem 0 0 !important; margin: 0 !important; }
+            .sigg-modal-panel::before { content: ""; display: block; width: 2.5rem; height: .25rem; border-radius: 9999px; background: #e5e7eb; margin: .5rem auto 0; flex-shrink: 0; }
         }
         @media (prefers-reduced-motion: reduce) {
             main table.responsive-cards .btn-accion { transition: none; }
