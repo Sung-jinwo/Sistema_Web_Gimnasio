@@ -82,7 +82,7 @@
         @endif
     </div>
 
-    <x-modal-form show="showSedeModal" title="Nueva Sede" subtitle="Complete los datos de la sede" icon='<i class="fas fa-building text-white"></i>' size="md" headerColor="purple">
+    <x-modal-form id="sedeModal" show="showSedeModal" title="Nueva Sede" subtitle="Complete los datos de la sede" icon='<i class="fas fa-building text-white"></i>' size="md" headerColor="purple">
         <form id="sedeForm" method="POST">
             @csrf
             <input type="hidden" id="sede_method" name="_method" value="POST">
