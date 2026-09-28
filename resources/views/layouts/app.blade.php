@@ -91,11 +91,15 @@
             main table.responsive-cards input, main table.responsive-cards select, main table.responsive-cards textarea { max-width: 100%; min-width: 0; }
             /* Tablas anidadas: scroll horizontal interno, no tarjeta-dentro-de-tarjeta. */
             main table.responsive-cards > tbody > tr > td > table { display: block; overflow-x: auto; min-width: 0; flex: 1 1 auto; }
-            /* Modales en móvil: sheet casi-completa anclada abajo, sin márgenes fantasma. */
+            /* Modales en móvil: sheet adaptable anclada abajo, sin márgenes fantasma. */
             div:has(> .sigg-modal-panel) { padding: 0 !important; align-items: flex-end !important; }
-            .sigg-modal-panel { width: 100% !important; max-width: none !important; height: 92dvh; max-height: 92dvh !important; border-radius: 1rem 1rem 0 0 !important; margin: 0 !important; }
+            .sigg-modal-panel { width: 100% !important; max-width: none !important; height: auto !important; max-height: 92dvh !important; border-radius: 1rem 1rem 0 0 !important; margin: 0 !important; }
             .sigg-modal-panel::before { content: ""; display: block; width: 2.5rem; height: .25rem; border-radius: 9999px; background: #e5e7eb; margin: .5rem auto 0; flex-shrink: 0; }
         }
+        /* Bloqueo de scroll de fondo con modal abierto (desktop y móvil). */
+        html.sigg-bloqueado, html.sigg-bloqueado body { overflow: hidden; }
+        html.sigg-bloqueado .sigg-contenido, html.sigg-bloqueado aside nav { overflow: hidden; }
+        .sigg-modal-overlay { overscroll-behavior: contain; }
         @media (prefers-reduced-motion: reduce) {
             main table.responsive-cards .btn-accion { transition: none; }
         }
@@ -324,6 +328,33 @@
             }
 
             window.siggEtiquetas = siggEtiquetas;
+        })();
+    </script>
+    <script>
+        // Bloqueo de scroll de fondo con modal abierto: congela .sigg-contenido y el menú
+        // lateral mientras algún overlay sea visible (incluye modales apilados).
+        (() => {
+            // Ojo: no usar offsetParent (es null en position:fixed); el display computado
+            // cubre x-show de Alpine y x-cloak inicial.
+            const hayModalAbierto = () => [...document.querySelectorAll('.sigg-modal-overlay')]
+                .some((el) => window.getComputedStyle(el).display !== 'none');
+
+            const sincronizar = () => {
+                document.documentElement.classList.toggle('sigg-bloqueado', hayModalAbierto());
+            };
+
+            document.addEventListener('DOMContentLoaded', sincronizar);
+
+            if (typeof MutationObserver !== 'undefined') {
+                const mo = new MutationObserver(sincronizar);
+                mo.observe(document.documentElement, {
+                    subtree: true,
+                    attributes: true,
+                    attributeFilter: ['style', 'class'],
+                });
+            }
+
+            window.siggModales = { sincronizar };
         })();
     </script>
 
