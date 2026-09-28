@@ -9,7 +9,7 @@
     x-transition:leave="transition ease-in duration-150"
     x-transition:leave-start="opacity-100"
     x-transition:leave-end="opacity-0"
-    {{ $attributes->merge(['class' => 'fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4']) }}
+    {{ $attributes->merge(['class' => 'sigg-modal-overlay fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4']) }}
     @click.self="{{ $show }} = false">
     
     <div
