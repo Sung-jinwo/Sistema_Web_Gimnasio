@@ -59,6 +59,32 @@ class CatalogoAuthorizationTest extends TestCase
         $this->get(route('categorias.index'))->assertOk()->assertSee('Nueva categoría')->assertSee('Nombre de la categoría');
     }
 
+    public function test_editar_producto_usa_fetch_y_endpoint_json(): void
+    {
+        $sede = Sede::factory()->create();
+        $admin = User::factory()->create(['fksede' => $sede->id_sede]);
+        $admin->assignRole('Administrador');
+        $categoria = Categoria::factory()->create();
+        $producto = Producto::factory()->create(['fksede' => $sede->id_sede, 'fkcategoria' => $categoria->id_categoria]);
+
+        // El botón de editar debe llamar a editProducto(id) — nunca inyectar @json en el atributo
+        // (las comillas escapadas como \u0022 rompían la evaluación de Alpine y el modal no abría).
+        $this->actingAs($admin)->get(route('productos.index'))
+            ->assertOk()
+            ->assertSee('editProducto('.$producto->id_productos.')', false)
+            ->assertDontSee('editar({', false);
+
+        // El endpoint JSON alimenta el modal y el update persiste los cambios.
+        $this->getJson(route('productos.edit', $producto))
+            ->assertOk()
+            ->assertJsonPath('id_productos', $producto->id_productos)
+            ->assertJsonPath('prod_nombre', $producto->prod_nombre);
+
+        $this->put(route('productos.update', $producto), $this->datosProducto($sede, $categoria, ['prod_nombre' => 'Producto Editado']))
+            ->assertRedirect(route('productos.index'));
+        $this->assertDatabaseHas('productos', ['id_productos' => $producto->id_productos, 'prod_nombre' => 'Producto Editado']);
+    }
+
     public function test_local_solo_consulta_catalogos_y_no_ve_controles_administrativos(): void
     {
         $sede = Sede::factory()->create();

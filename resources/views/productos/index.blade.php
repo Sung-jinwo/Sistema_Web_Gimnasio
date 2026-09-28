@@ -3,7 +3,7 @@
 @section('page-title', 'Productos')
 @section('page-subtitle', 'Inventario por sede y control de stock')
 @section('content')
-<div x-data="productoCrud()" class="w-full space-y-5">
+<div id="productosRoot" x-data="productoCrud()" class="w-full space-y-5">
     <div class="flex flex-wrap justify-end gap-2">
         <a href="{{ route('categorias.index') }}" class="inline-flex items-center px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition">
             <i class="fas fa-tags mr-2"></i> Categorías
@@ -74,7 +74,7 @@
                         @if(auth()->user()->hasRole('Administrador'))
                         <td class="px-4 py-3 whitespace-nowrap text-center">
                             <div class="flex justify-center gap-2">
-                                <button @click="editar(@json($producto))" class="btn-accion text-green-600 hover:text-green-900" title="Editar">
+                                <button type="button" onclick="editProducto({{ $producto->id_productos }})" class="btn-accion text-green-600 hover:text-green-900" title="Editar">
                                     <i class="fas fa-pen-to-square"></i>
                                 </button>
                                 <form method="POST" action="{{ route('productos.destroy', $producto->id_productos) }}" class="inline">
@@ -196,6 +196,24 @@ function productoCrud() {
             this.modal = true;
         }
     }
+}
+
+function editProducto(id) {
+    fetch(`/productos/${id}/edit`, {
+        headers: {
+            'Accept': 'application/json',
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        const state = Alpine.$data(document.getElementById('productosRoot'));
+        state.form = data;
+        state.editando = true;
+        state.url = `/productos/${id}`;
+        state.modal = true;
+    })
+    .catch(() => window.notify?.error('No se pudo cargar el producto.'));
 }
 </script>
 @endpush
