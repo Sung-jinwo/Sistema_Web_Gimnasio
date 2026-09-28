@@ -22,9 +22,9 @@
         x-transition:leave="transition ease-in duration-150"
         x-transition:leave-start="opacity-100 translate-y-0 scale-100"
         x-transition:leave-end="opacity-0 translate-y-2 scale-95"
-        class="bg-white rounded-lg w-full {{ $getSizeClass() }} shadow-lg">
+        class="sigg-modal-panel bg-white rounded-lg w-full {{ $getSizeClass() }} shadow-lg max-h-[90dvh] overflow-hidden flex flex-col">
         @if($title)
-            <div class="px-6 py-4 border-b border-gray-200">
+            <div class="px-6 py-4 border-b border-gray-200 flex-shrink-0">
                 <div class="flex items-center justify-between">
                     <h3 class="text-lg font-bold text-gray-900">{{ $title }}</h3>
                     @if($dismissible)
@@ -40,12 +40,12 @@
             </div>
         @endif
 
-        <div class="p-6">
+        <div class="p-6 overflow-y-auto flex-1 min-h-0">
             {{ $slot }}
         </div>
 
         @isset($footer)
-            <div class="px-6 py-4 border-t border-gray-200 bg-gray-50 rounded-b-lg">
+            <div class="px-6 py-4 border-t border-gray-200 bg-gray-50 rounded-b-lg flex-shrink-0">
                 {{ $footer }}
             </div>
         @endisset

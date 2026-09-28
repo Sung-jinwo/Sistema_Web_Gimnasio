@@ -51,9 +51,9 @@
                         <th data-card-oculto class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">Mínimo</th>
                         <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">Categoría</th>
                         <th data-card-oculto class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">Sede</th>
-                        @can('create', App\Models\Producto::class)
+                        @if(auth()->user()->hasRole('Administrador'))
                             <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
-                        @endcan
+                        @endif
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
@@ -103,7 +103,8 @@
         @endif
     </div>
 
-    @can('create', App\Models\Producto::class)
+    {{-- El modal se renderiza si puede crear O editar: editar() lo necesita aunque no tenga crear. --}}
+    @if(auth()->user()->can('create', App\Models\Producto::class) || auth()->user()->can('productos.editar'))
     <x-modal-form show="modal" title="Producto" subtitle="Complete los datos del inventario" size="lg">
         <form :action="url" method="POST" class="space-y-4">
             @csrf
@@ -166,7 +167,7 @@
             </div>
         </form>
     </x-modal-form>
-    @endcan
+    @endif
 </div>
 @endsection
 

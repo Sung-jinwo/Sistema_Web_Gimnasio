@@ -45,9 +45,9 @@
                         <th data-card-oculto class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">Duración</th>
                         <th data-card-oculto class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden lg:table-cell">Categoría</th>
                         <th data-card-prioritario class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Estado</th>
-                        @can('create', App\Models\Membresia::class)
+                        @if(auth()->user()->hasRole('Administrador'))
                             <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">Acciones</th>
-                        @endcan
+                        @endif
                     </tr>
                 </thead>
                 <tbody class="bg-white divide-y divide-gray-200">
@@ -202,7 +202,10 @@
             </div>
         </form>
     </x-modal-form>
+    @endcan
 
+    {{-- El modal de edición se renderiza si puede crear O editar: editMembresia() lo necesita aunque no tenga crear. --}}
+    @if(auth()->user()->can('create', App\Models\Membresia::class) || auth()->user()->can('membresias.editar'))
     <x-modal-form show="showEditModal" title="Editar Membresía" subtitle="Modifique los datos del plan" icon='<i class="fas fa-edit text-white"></i>' size="lg" headerColor="blue">
         <form id="editForm" method="POST" class="space-y-4">
             @csrf
@@ -296,10 +299,10 @@
             </div>
         </form>
     </x-modal-form>
-    @endcan
+    @endif
 </div>
 
-@can('create', App\Models\Membresia::class)
+@if(auth()->user()->can('create', App\Models\Membresia::class) || auth()->user()->can('membresias.editar'))
 @push('scripts')
 <script>
 function toggleModalidad(valor) {
@@ -368,5 +371,5 @@ function editMembresia(id) {
 }
 </script>
 @endpush
-@endcan
+@endif
 @endsection

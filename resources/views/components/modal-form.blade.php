@@ -20,7 +20,7 @@
         x-transition:leave="transition ease-in duration-150"
         x-transition:leave-start="opacity-100 translate-y-0 scale-100"
         x-transition:leave-end="opacity-0 translate-y-2 scale-95"
-        class="bg-white rounded-lg w-full {{ $getSizeClass() }} {{ $scrollable ? 'max-h-[90vh]' : '' }} overflow-hidden flex flex-col shadow-lg">
+        class="sigg-modal-panel bg-white rounded-lg w-full {{ $getSizeClass() }} {{ $scrollable ? 'max-h-[90dvh]' : '' }} overflow-hidden flex flex-col shadow-lg">
         
         <!-- Header Mejorado -->
         @if($title)
